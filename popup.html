@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LinkedIn Job Details</title>
+    <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+<div id="root">
+    <div id="status">Loading...</div>
+
+    <details style="margin:8px 0">
+        <summary>Show raw text</summary>
+        <pre id="raw" style="white-space:pre-wrap; font-size:12px;"></pre>
+    </details>
+
+    <div id="content"></div>
+
+    <hr/>
+    <button id="send" style="margin-top:8px">Send to ChatGPT</button>
+    <div id="ai-status" class="muted" style="margin-top:6px"></div>
+    <div id="ai-output" style="margin-top:6px; font-size:13px; line-height:1.35;"></div>
+
+    <p class="muted" style="margin-top:10px">
+        Key/prompt can be configured in <a id="open-options" href="#">options</a>.
+    </p>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

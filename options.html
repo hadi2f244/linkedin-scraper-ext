@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Settings: LinkedIn Job Details</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; }
+        label { display:block; margin: 8px 0 4px; font-weight: 600; }
+        input[type="password"], textarea { width: 640px; max-width: 100%; }
+        textarea { height: 160px; }
+        .muted { color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+<h1>Settings</h1>
+
+<label>OpenAI API Key</label>
+<input id="key" type="password" placeholder="sk-..." />
+
+<label>Prompt</label>
+<textarea id="prompt"></textarea>
+
+<div style="margin-top:10px">
+    <button id="save">Save</button>
+    <span id="status" class="muted"></span>
+</div>
+
+<script src="options.js"></script>
+</body>
+</html>

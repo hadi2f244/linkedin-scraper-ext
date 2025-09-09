@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn Job Details Summary",
+  "version": "1.0.0",
+  "description": "",
+  "action": {
+    "default_title": "LinkedIn Job Details Summary",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": ["https://api.openai.com/*"],
+  "options_page": "options.html"
+}

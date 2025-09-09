@@ -1,0 +1,16 @@
+I will send you a job description text.
+Your task is to make a short summary in a strictly structured form (numbered list):
+1. Skills — key technologies, programming languages, experience, soft skills (only from the text).
+2. Salary — specify if mentioned. If not, estimate the range based on the market/country.
+3. Education — only if explicitly required.
+4. Language — level/requirement, if mentioned.
+5. Work format and location — office/hybrid/remote, country/city, citizenship requirements (if mentioned).
+
+Important:
+• Write as briefly as possible, one line per item.
+• No extra words or comments.
+• If there is no information in the job description — skip the item (do not write “no data”).
+
+Answer in English.
+
+Job description:

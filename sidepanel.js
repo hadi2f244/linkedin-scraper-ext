@@ -4,13 +4,28 @@
     const $ = (s) => document.querySelector(s);
     const statusEl = $('#status');
     const contentEl = $('#content');
-    const rawEl = $('#raw');
+    const rawTextContainer = $('#raw-text-container');
+    const rawTextPreview = $('#raw-text-preview');
+    const rawTextFull = $('#raw-text-full');
+    const readMoreBtn = $('#read-more-btn');
     const aiStatusEl = $('#ai-status');
     const aiOutputEl = $('#ai-output');
     const sendBtn = $('#send');
     const refreshBtn = $('#refresh');
-    
+
     $('#open-options').onclick = () => chrome.runtime.openOptionsPage();
+
+    // Handle Read More button
+    readMoreBtn.onclick = () => {
+        rawTextContainer.classList.toggle('expanded');
+        rawTextContainer.classList.toggle('collapsed');
+
+        if (rawTextContainer.classList.contains('expanded')) {
+            readMoreBtn.textContent = 'Read less';
+        } else {
+            readMoreBtn.textContent = 'Read more';
+        }
+    };
 
     let currentJobText = '';
 
@@ -42,7 +57,9 @@
     const displayJobData = (jobText) => {
         if (!jobText) {
             setStatus('No job data available. Click on a job in LinkedIn.', true);
-            rawEl.textContent = '';
+            rawTextPreview.textContent = '';
+            rawTextFull.textContent = '';
+            rawTextContainer.style.display = 'none';
             contentEl.innerHTML = '';
             sendBtn.disabled = true;
             return;
@@ -50,9 +67,22 @@
 
         currentJobText = normalizeText(jobText);
         setStatus('Job data loaded ✓');
-        rawEl.textContent = currentJobText;
-        contentEl.innerHTML = `<div class="muted">Job details extracted. Click "Send to ChatGPT" to get a summary.</div>`;
+
+        // Show raw text in expandable section
+        rawTextContainer.style.display = 'block';
+        rawTextContainer.classList.add('collapsed');
+        rawTextContainer.classList.remove('expanded');
+        rawTextPreview.textContent = currentJobText;
+        rawTextFull.textContent = currentJobText;
+        readMoreBtn.textContent = 'Read more';
+
+        contentEl.innerHTML = `<div class="muted">Job details extracted. Sending to ChatGPT automatically...</div>`;
         sendBtn.disabled = false;
+
+        // Automatically send to ChatGPT after data is loaded
+        setTimeout(() => {
+            sendToChatGPT();
+        }, 500);
     };
 
     // Request job data from the active LinkedIn tab
@@ -101,11 +131,8 @@
         }
     });
 
-    // Refresh button handler
-    refreshBtn.onclick = requestJobDataFromTab;
-
-    // Handler for sending to OpenAI
-    sendBtn.onclick = async () => {
+    // Function to send to ChatGPT
+    const sendToChatGPT = async () => {
         if (!currentJobText) {
             aiStatusEl.textContent = 'No job data to send.';
             return;
@@ -172,6 +199,12 @@
             aiStatusEl.textContent = 'Error while requesting ChatGPT: ' + err.message;
         }
     };
+
+    // Refresh button handler
+    refreshBtn.onclick = requestJobDataFromTab;
+
+    // Send button handler (for manual sending)
+    sendBtn.onclick = sendToChatGPT;
 
     // Initialize: request job data from current tab
     setStatus('Initializing...');

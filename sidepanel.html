@@ -13,16 +13,20 @@
         <div id="status">Waiting for job data...</div>
     </div>
 
-    <details style="margin:8px 0">
-        <summary>Show raw text</summary>
-        <pre id="raw" style="white-space:pre-wrap; font-size:12px;"></pre>
-    </details>
+    <div class="button-group">
+        <button id="send" disabled>Send to ChatGPT</button>
+        <button id="refresh">Refresh Job Data</button>
+    </div>
 
     <div id="content"></div>
 
+    <div id="raw-text-container" class="raw-text-container collapsed">
+        <div id="raw-text-preview" class="raw-text-preview"></div>
+        <button id="read-more-btn" class="read-more-btn">Read more</button>
+        <div id="raw-text-full" class="raw-text-full"></div>
+    </div>
+
     <hr/>
-    <button id="send" style="margin-top:8px">Send to ChatGPT</button>
-    <button id="refresh" style="margin-top:8px; margin-left:8px">Refresh Job Data</button>
     <div id="ai-status" class="muted" style="margin-top:6px"></div>
     <div id="ai-output" style="margin-top:6px; font-size:13px; line-height:1.35;"></div>
 

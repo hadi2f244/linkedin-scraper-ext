@@ -28,6 +28,8 @@
     };
 
     let currentJobText = '';
+    let abortController = null; // For canceling fetch requests
+    let isSending = false;
 
     const setError = (msg) => {
         statusEl.className = 'error';
@@ -53,8 +55,33 @@
             .trim();
     };
 
+    // Check keywords in job text
+    const checkKeywords = (jobText, keywords) => {
+        if (!keywords || !keywords.trim()) {
+            return '';
+        }
+
+        const keywordList = keywords.split(',').map(k => k.trim()).filter(k => k);
+        if (keywordList.length === 0) {
+            return '';
+        }
+
+        const lowerJobText = jobText.toLowerCase();
+        let html = '<div class="keyword-results"><h3>Keyword Search Results:</h3><ul>';
+
+        keywordList.forEach(keyword => {
+            const found = lowerJobText.includes(keyword.toLowerCase());
+            const icon = found ? '✅' : '❌';
+            const className = found ? 'keyword-found' : 'keyword-not-found';
+            html += `<li class="${className}">${icon} <strong>${keyword}</strong></li>`;
+        });
+
+        html += '</ul></div>';
+        return html;
+    };
+
     // Display job data in the side panel
-    const displayJobData = (jobText) => {
+    const displayJobData = async (jobText) => {
         if (!jobText) {
             setStatus('No job data available. Click on a job in LinkedIn.', true);
             rawTextPreview.textContent = '';
@@ -76,13 +103,23 @@
         rawTextFull.textContent = currentJobText;
         readMoreBtn.textContent = 'Read more';
 
-        contentEl.innerHTML = `<div class="muted">Job details extracted. Sending to ChatGPT automatically...</div>`;
         sendBtn.disabled = false;
 
-        // Automatically send to ChatGPT after data is loaded
-        setTimeout(() => {
-            sendToChatGPT();
-        }, 500);
+        // Check if auto-send is enabled and get keywords
+        const { AUTO_SEND_CHATGPT, SEARCH_KEYWORDS } = await chrome.storage.local.get(['AUTO_SEND_CHATGPT', 'SEARCH_KEYWORDS']);
+
+        // Display keyword search results
+        const keywordHtml = checkKeywords(currentJobText, SEARCH_KEYWORDS);
+
+        if (AUTO_SEND_CHATGPT) {
+            contentEl.innerHTML = keywordHtml + `<div class="muted" style="margin-top: 12px;">Job details extracted. Sending to ChatGPT automatically...</div>`;
+            // Automatically send to ChatGPT after data is loaded
+            setTimeout(() => {
+                sendToChatGPT();
+            }, 500);
+        } else {
+            contentEl.innerHTML = keywordHtml + `<div class="muted" style="margin-top: 12px;">Job details extracted. Click "Send to ChatGPT" to get a summary.</div>`;
+        }
     };
 
     // Request job data from the active LinkedIn tab
@@ -138,8 +175,16 @@
             return;
         }
 
+        // Change button to "Stop ChatGPT"
+        isSending = true;
+        sendBtn.textContent = 'Stop ChatGPT';
+        sendBtn.style.background = '#d32f2f';
+
         aiOutputEl.textContent = '';
         aiStatusEl.textContent = 'Sending to ChatGPT...';
+
+        // Create new abort controller
+        abortController = new AbortController();
 
         // Retrieve settings
         const { OPENAI_API_KEY, USER_PROMPT } = await chrome.storage.local.get(['OPENAI_API_KEY', 'USER_PROMPT']);
@@ -157,11 +202,13 @@
 
         if (!OPENAI_API_KEY) {
             aiStatusEl.textContent = 'No API key. Open options and enter the key.';
+            resetSendButton();
             return;
         }
 
         if (!prompt) {
             aiStatusEl.textContent = 'No prompt. Set a prompt in options or add prompt.txt.';
+            resetSendButton();
             return;
         }
 
@@ -182,7 +229,8 @@
                         { role: 'user', content: fullPrompt }
                     ],
                     temperature: 0.2
-                })
+                }),
+                signal: abortController.signal
             });
 
             const data = await resp.json();
@@ -194,17 +242,42 @@
             aiStatusEl.textContent = 'Done ✓';
             aiOutputEl.innerHTML = msg.replace(/\n/g, '<br>');
 
+            // Reset button after successful response
+            resetSendButton();
+
         } catch (err) {
             console.error(err);
-            aiStatusEl.textContent = 'Error while requesting ChatGPT: ' + err.message;
+            if (err.name === 'AbortError') {
+                aiStatusEl.textContent = 'Request cancelled.';
+            } else {
+                aiStatusEl.textContent = 'Error while requesting ChatGPT: ' + err.message;
+            }
+            resetSendButton();
         }
+    };
+
+    // Reset send button to original state
+    const resetSendButton = () => {
+        isSending = false;
+        sendBtn.textContent = 'Send to ChatGPT';
+        sendBtn.style.background = '';
+        abortController = null;
     };
 
     // Refresh button handler
     refreshBtn.onclick = requestJobDataFromTab;
 
-    // Send button handler (for manual sending)
-    sendBtn.onclick = sendToChatGPT;
+    // Send button handler (for manual sending or stopping)
+    sendBtn.onclick = () => {
+        if (isSending && abortController) {
+            // Stop the request
+            abortController.abort();
+            resetSendButton();
+        } else {
+            // Send to ChatGPT
+            sendToChatGPT();
+        }
+    };
 
     // Initialize: request job data from current tab
     setStatus('Initializing...');

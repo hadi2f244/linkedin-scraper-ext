@@ -20,6 +20,16 @@
 <label>Prompt</label>
 <textarea id="prompt"></textarea>
 
+<label style="margin-top: 16px;">
+    <input type="checkbox" id="auto-send" />
+    Automatically send to ChatGPT when job data loads
+</label>
+<p class="muted" style="margin-left: 20px;">When enabled, the extension will automatically send job details to ChatGPT as soon as they are loaded.</p>
+
+<label style="margin-top: 16px;">Keywords to Search (comma-separated)</label>
+<input id="keywords" type="text" placeholder="e.g., cicd, kubernetes, docker, python" style="width: 640px; max-width: 100%;" />
+<p class="muted">Enter keywords separated by commas. The extension will check if these keywords exist in the job description.</p>
+
 <div style="margin-top:10px">
     <button id="save">Save</button>
     <span id="status" class="muted"></span>

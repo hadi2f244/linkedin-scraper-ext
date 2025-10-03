@@ -3,6 +3,7 @@
     const promptEl = document.getElementById('prompt');
     const autoSendEl = document.getElementById('auto-send');
     const keywordsEl = document.getElementById('keywords');
+    const badKeywordsEl = document.getElementById('bad-keywords');
     const csvFileEl = document.getElementById('csv-file');
     const csvStatusEl = document.getElementById('csv-status');
     const statusEl = document.getElementById('status');
@@ -90,7 +91,8 @@
         'OPENAI_API_KEY',
         'USER_PROMPT',
         'AUTO_SEND_CHATGPT',
-        'SEARCH_KEYWORDS'
+        'SEARCH_KEYWORDS',
+        'BAD_KEYWORDS'
     ]);
 
     if (settings.OPENAI_API_KEY) {
@@ -114,6 +116,11 @@
     // Keywords field
     if (settings.SEARCH_KEYWORDS) {
         keywordsEl.value = settings.SEARCH_KEYWORDS;
+    }
+
+    // Bad keywords field
+    if (settings.BAD_KEYWORDS) {
+        badKeywordsEl.value = settings.BAD_KEYWORDS;
     }
 
     // Display CSV file status from IndexedDB
@@ -214,7 +221,8 @@
             OPENAI_API_KEY: keyEl.value.trim(),
             USER_PROMPT: promptEl.value,
             AUTO_SEND_CHATGPT: autoSendEl.checked,
-            SEARCH_KEYWORDS: keywordsEl.value.trim()
+            SEARCH_KEYWORDS: keywordsEl.value.trim(),
+            BAD_KEYWORDS: badKeywordsEl.value.trim()
         });
         statusEl.textContent = 'Saved.';
         setTimeout(() => statusEl.textContent = '', 1500);

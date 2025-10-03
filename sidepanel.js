@@ -304,14 +304,11 @@
         }
 
         html += `
-            <div class="visa-record collapsed" id="visa-record-0">
-                <div class="visa-record-header" data-record-id="visa-record-0">
-                    ${matchQuality}
-                    <div class="visa-record-title">
-                        <strong>✅ ${firstMatch['Organisation Name'] || 'N/A'}</strong>
-                        <span class="visa-location">${firstMatch['Town/City'] || 'N/A'}</span>
-                    </div>
-                    <button class="visa-expand-btn">▼ Details</button>
+            <div class="visa-record" id="visa-record-0">
+                ${matchQuality}
+                <div class="visa-record-title">
+                    <strong>✅ ${firstMatch['Organisation Name'] || 'N/A'}</strong>
+                    <span class="visa-location">${firstMatch['Town/City'] || 'N/A'}</span>
                 </div>
                 <div class="visa-record-details">
                     <div class="visa-field"><span class="label">County:</span> ${firstMatch['County'] || 'N/A'}</div>
@@ -346,14 +343,11 @@
                 const recordId = `visa-record-${actualIndex}`;
 
                 html += `
-                    <div class="visa-record collapsed" id="${recordId}">
-                        <div class="visa-record-header" data-record-id="${recordId}">
-                            ${matchQuality}
-                            <div class="visa-record-title">
-                                <strong>${match['Organisation Name'] || 'N/A'}</strong>
-                                <span class="visa-location">${match['Town/City'] || 'N/A'}</span>
-                            </div>
-                            <button class="visa-expand-btn">▼ Details</button>
+                    <div class="visa-record" id="${recordId}">
+                        ${matchQuality}
+                        <div class="visa-record-title">
+                            <strong>${match['Organisation Name'] || 'N/A'}</strong>
+                            <span class="visa-location">${match['Town/City'] || 'N/A'}</span>
                         </div>
                         <div class="visa-record-details">
                             <div class="visa-field"><span class="label">County:</span> ${match['County'] || 'N/A'}</div>
@@ -400,6 +394,33 @@
         return html;
     };
 
+    // Check bad keywords in job text (inverse logic - found is bad, not found is good)
+    const checkBadKeywords = (jobText, badKeywords) => {
+        if (!badKeywords || !badKeywords.trim()) {
+            return '';
+        }
+
+        const badKeywordList = badKeywords.split(',').map(k => k.trim()).filter(k => k);
+        if (badKeywordList.length === 0) {
+            return '';
+        }
+
+        const lowerJobText = jobText.toLowerCase();
+        let html = '<div class="bad-keyword-results"><strong>Bad Keywords:</strong> ';
+
+        const badKeywordTags = badKeywordList.map(keyword => {
+            const found = lowerJobText.includes(keyword.toLowerCase());
+            // Inverse logic: found = bad (red X), not found = good (green check)
+            const icon = found ? '❌' : '✅';
+            const className = found ? 'bad-keyword-found' : 'bad-keyword-not-found';
+            return `<span class="bad-keyword-tag ${className}">${icon} ${keyword}</span>`;
+        });
+
+        html += badKeywordTags.join(' ');
+        html += '</div>';
+        return html;
+    };
+
     // Display job data in the side panel
     const displayJobData = async (jobData) => {
         // Handle both old format (string) and new format (object)
@@ -436,7 +457,7 @@
         sendBtn.disabled = false;
 
         // Check if auto-send is enabled and get keywords
-        const { AUTO_SEND_CHATGPT, SEARCH_KEYWORDS } = await chrome.storage.local.get(['AUTO_SEND_CHATGPT', 'SEARCH_KEYWORDS']);
+        const { AUTO_SEND_CHATGPT, SEARCH_KEYWORDS, BAD_KEYWORDS } = await chrome.storage.local.get(['AUTO_SEND_CHATGPT', 'SEARCH_KEYWORDS', 'BAD_KEYWORDS']);
 
         // Check visa sponsorship
         let visaHtml = '';
@@ -458,7 +479,17 @@
             keywordHtml = `<div class="keyword-results"><p class="warning">Error checking keywords: ${error.message}</p></div>`;
         }
 
-        const combinedHtml = visaHtml + keywordHtml;
+        // Display bad keyword search results
+        let badKeywordHtml = '';
+        try {
+            badKeywordHtml = checkBadKeywords(currentJobText, BAD_KEYWORDS);
+            console.log('Bad keyword HTML generated, length:', badKeywordHtml ? badKeywordHtml.length : 0);
+        } catch (error) {
+            console.error('Error in checkBadKeywords:', error);
+            badKeywordHtml = `<div class="bad-keyword-results"><p class="warning">Error checking bad keywords: ${error.message}</p></div>`;
+        }
+
+        const combinedHtml = visaHtml + keywordHtml + badKeywordHtml;
         console.log('Combined HTML length:', combinedHtml.length);
         console.log('Combined HTML preview:', combinedHtml.substring(0, 300));
 
@@ -480,25 +511,6 @@
             console.log('Event listeners attached');
         } catch (error) {
             console.error('Error attaching event listeners:', error);
-        }
-    };
-
-    // Toggle visa record expand/collapse
-    const toggleVisaRecord = (recordId) => {
-        const record = document.getElementById(recordId);
-        if (!record) return;
-
-        const isCollapsed = record.classList.contains('collapsed');
-        const btn = record.querySelector('.visa-expand-btn');
-
-        if (isCollapsed) {
-            record.classList.remove('collapsed');
-            record.classList.add('expanded');
-            if (btn) btn.textContent = '▲ Hide';
-        } else {
-            record.classList.add('collapsed');
-            record.classList.remove('expanded');
-            if (btn) btn.textContent = '▼ Details';
         }
     };
 
@@ -580,24 +592,15 @@
                 const visaHtml = await checkVisaSponsorship(newCompanyName);
 
                 // Get keywords HTML
-                const { SEARCH_KEYWORDS } = await chrome.storage.local.get(['SEARCH_KEYWORDS']);
+                const { SEARCH_KEYWORDS, BAD_KEYWORDS } = await chrome.storage.local.get(['SEARCH_KEYWORDS', 'BAD_KEYWORDS']);
                 const keywordHtml = checkKeywords(currentJobText, SEARCH_KEYWORDS);
+                const badKeywordHtml = checkBadKeywords(currentJobText, BAD_KEYWORDS);
 
                 // Update content
-                contentEl.innerHTML = visaHtml + keywordHtml;
+                contentEl.innerHTML = visaHtml + keywordHtml + badKeywordHtml;
 
                 // Re-attach event listeners
                 attachVisaEventListeners();
-            }
-            return;
-        }
-
-        // Toggle visa record expand/collapse
-        const recordHeader = target.closest('.visa-record-header');
-        if (recordHeader) {
-            const recordId = recordHeader.getAttribute('data-record-id');
-            if (recordId) {
-                toggleVisaRecord(recordId);
             }
             return;
         }

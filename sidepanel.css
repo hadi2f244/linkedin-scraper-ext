@@ -371,6 +371,41 @@ a:hover {
     color: #c62828;
 }
 
+/* Bad keyword search results */
+.bad-keyword-results {
+    background: #fff3e0;
+    border: 1px solid #ff9800;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 12px 0;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.bad-keyword-results strong {
+    color: #e65100;
+}
+
+.bad-keyword-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 2px 4px 2px 0;
+    border-radius: 12px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.bad-keyword-tag.bad-keyword-found {
+    background: #ffebee;
+    color: #c62828;
+    font-weight: 500;
+}
+
+.bad-keyword-tag.bad-keyword-not-found {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
 /* Show more matches button */
 .more-matches-section {
     margin-top: 12px;

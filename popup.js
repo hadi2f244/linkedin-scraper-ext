@@ -135,14 +135,14 @@
         const fullPrompt = `${prompt.trim()}\n\n-----${cleaned}`;
 
         try {
-            const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+                const resp = await fetch('https://chats.qgpt.ir/api/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${OPENAI_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4o-mini',
+                    model: 'gpt-4.1',
                     messages: [
                         { role: 'system', content: 'You are a summarizing assistant. Answer concisely, in a structured manner, and to the point.' },
                         { role: 'user', content: fullPrompt }

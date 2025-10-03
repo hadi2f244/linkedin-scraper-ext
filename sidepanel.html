@@ -1,14 +1,17 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>LinkedIn Job Details</title>
-    <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="sidepanel.css" />
 </head>
 <body>
 <div id="root">
-    <div id="status">Loading...</div>
+    <div class="header">
+        <h2>LinkedIn Job Summary</h2>
+        <div id="status">Waiting for job data...</div>
+    </div>
 
     <details style="margin:8px 0">
         <summary>Show raw text</summary>
@@ -19,6 +22,7 @@
 
     <hr/>
     <button id="send" style="margin-top:8px">Send to ChatGPT</button>
+    <button id="refresh" style="margin-top:8px; margin-left:8px">Refresh Job Data</button>
     <div id="ai-status" class="muted" style="margin-top:6px"></div>
     <div id="ai-output" style="margin-top:6px; font-size:13px; line-height:1.35;"></div>
 
@@ -26,6 +30,7 @@
         Key/prompt can be configured in <a id="open-options" href="#">options</a>.
     </p>
 </div>
-<script src="popup.js"></script>
+<script src="sidepanel.js"></script>
 </body>
 </html>
+

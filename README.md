@@ -1,318 +1,150 @@
-# LinkedIn Job Scraper & AI Analyzer
+# LinkedIn Job Scraper & AI Analyzer 🚀
 
-🚀 **Automatically** scrape LinkedIn job postings, check UK visa sponsorship status, search for keywords, and get AI-powered summaries — all in a convenient side panel!
+**Automatically** analyze LinkedIn jobs with AI summaries, UK visa sponsorship checks, and keyword matching — all in a convenient side panel!
 
----
-
-## ✨ Features
-
-### 🎯 **Automatic Job Scraping**
-- **Side panel** opens automatically when you browse LinkedIn jobs
-- **Real-time updates** as you click through different job listings
-- **No manual clicking** required — just browse jobs naturally
-- Clean, normalized text extraction with "Read more" expandable view
-
-### 🔍 **UK Visa Sponsorship Checker**
-- **Upload UK government CSV** with licensed visa sponsors (12MB+ supported via IndexedDB)
-- **Automatic company detection** from job postings
-- **Smart matching algorithm** handles company name variations and abbreviations
-- **Instant verification** — see if the company can sponsor work visas
-- **Detailed information** including location, rating, and sponsorship routes
-- **Match quality indicators** (Exact Match, High Match, Possible Match)
-- **Manual search option** if company name isn't auto-detected
-- **Top 5 results** sorted by relevance
-
-### 🎯 **Keyword Search**
-- Define **custom keywords** to search for in job descriptions
-- Instant **visual feedback** (✅ found / ❌ not found)
-- Perfect for checking required skills: CI/CD, Kubernetes, Python, AWS, etc.
-- Each keyword displayed on its own line with color coding
-
-### 🤖 **AI-Powered Summaries**
-- **ChatGPT integration** for intelligent job analysis
-- **Custom prompts** for personalized summaries
-- **Auto-send option** or manual control
-- **Stop/Cancel** requests mid-flight
-- Structured, concise summaries tailored to your needs
-
-### 📱 **Modern UI**
-- **Side panel interface** — always accessible while browsing
-- **Expandable job text** with "Read more" functionality
-- **Color-coded results** for quick scanning
-- **Professional design** with LinkedIn branding
-- **Responsive layout** that works seamlessly
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue?logo=google-chrome)
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-green)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
 
-## 🎬 How It Works
+## ✨ Key Features
 
-1. **Install the extension** (see Setup below)
-2. **Configure settings** (API key, keywords, upload CSV)
-3. **Browse LinkedIn jobs** — side panel opens automatically
-4. **Click on any job** — data loads instantly in real-time
-5. **See results:**
-   - 🔍 Visa sponsorship status (if CSV uploaded)
-   - ✅ Keyword matches
-   - 🤖 AI summary (if auto-send enabled)
-6. **Review full job text** with expandable "Read more" section
-7. **Manual controls** available for refresh and re-analysis
+🎯 **Auto-Scraping** — Side panel opens automatically, updates in real-time as you browse jobs  
+🔍 **Visa Sponsorship** — Check UK work visa eligibility instantly (supports 12MB+ CSV files)  
+🎯 **Keyword Search** — Highlight must-have skills (CI/CD, Kubernetes, Python, etc.)  
+🤖 **AI Summaries** — Get structured job analysis via ChatGPT  
+⚡ **Smart Matching** — Handles company name variations and abbreviations  
 
 ---
 
-## 🚀 Setup
+## 🎬 Quick Demo
 
-### Installation
+1. Browse LinkedIn jobs → Side panel opens automatically
+2. Click any job → Instant results:
+   - ✅ **Visa sponsor?** "Barclays - Found in UK register!"
+   - ✅ **Keywords?** "kubernetes ✅, python ✅, gcp ❌"
+   - 🤖 **AI Summary** "Skills: 5+ years DevOps, AWS, Terraform..."
+
+---
+
+## 🚀 Quick Start
+
+### 1. Install
 
 ```bash
 git clone https://github.com/yourusername/linkedin-scraper-ext
 ```
 
 1. Open `chrome://extensions/`
-2. Enable **Developer Mode** (top right toggle)
-3. Click **Load unpacked**
-4. Select the extension folder
-5. The extension icon should appear in your toolbar
+2. Enable **Developer Mode**
+3. Click **Load unpacked** → Select folder
+4. Done! 🎉
 
-### Configuration
+### 2. Configure (2 minutes)
 
-#### 1. **OpenAI API Key** (Required for AI summaries)
-- Right-click extension icon → **Options**
-- Enter your OpenAI API key
-- Or add a `prompt.txt` file in the root folder
+Right-click extension → **Options**:
 
-#### 2. **Custom Prompt** (Optional)
-- Configure your preferred summary format
-- See example prompt below
+- **API Key** (optional): Add OpenAI key for AI summaries
+- **Keywords** (optional): `kubernetes, CI/CD, python, aws, docker`
+- **CSV File** (optional): [Download UK Visa Sponsors CSV](https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers)
+- **Auto-send** (optional): Check to auto-generate AI summaries
 
-#### 3. **Keywords** (Optional)
-- Add comma-separated keywords to search for
-- Example: `kubernetes, CI/CD, python, aws, docker, terraform`
+### 3. Use It!
 
-#### 4. **Auto-send to ChatGPT** (Optional)
-- Check the box to automatically send jobs to ChatGPT
-- Uncheck for manual control (default: unchecked)
-
-#### 5. **UK Visa Sponsorship CSV** (Optional but recommended)
-- Download from: [UK Government - Register of Licensed Sponsors](https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers)
-- Look for "Worker and Temporary Worker" CSV file
-- Upload via Options page
-- File is stored locally in IndexedDB (supports 12MB+ files)
+1. Go to [LinkedIn Jobs](https://www.linkedin.com/jobs/)
+2. Click any job
+3. Check side panel for instant analysis! ✨
 
 ---
 
-## 📖 Usage Guide
+## 📸 Screenshots
 
-### Automatic Mode (Recommended)
+### Side Panel in Action
+*Automatic visa check, keyword matching, and AI summary*
 
-1. Navigate to [LinkedIn Jobs](https://www.linkedin.com/jobs/)
-2. Side panel opens automatically
-3. Click on any job listing
-4. Results appear instantly:
-   - Company name auto-detected
-   - Visa sponsorship check runs
-   - Keywords highlighted
-   - AI summary generated (if auto-send enabled)
+![Side Panel](readme/sidepanel-example.jpg)
 
-### Manual Mode
+### Visa Sponsorship Results
+*Instant verification with match quality indicators*
 
-1. Click **Refresh Job Data** to reload current job
-2. Enter company name manually if not detected
-3. Click **Check Visa** to search sponsorship database
-4. Click **Send to ChatGPT** to get AI summary
-5. Click **Stop ChatGPT** to cancel ongoing requests
-
-### Reading Job Details
-
-- Job text preview shows first ~150px
-- Click **Read more ▼** to expand full text
-- Click **Read less ▲** to collapse
+![Visa Check](readme/visa-check-example.jpg)
 
 ---
 
-## 🎯 Example Prompt
-
-```text
-I will send you a job description text.
-Your task is to make a short summary in a strictly structured form (numbered list):
-
-1. Skills — key technologies, programming languages, experience, soft skills (only from the text).
-2. Salary — specify if mentioned. If not, estimate the range based on the market/country.
-3. Education — only if explicitly required.
-4. Language — level/requirement, if mentioned.
-5. Work format and location — office/hybrid/remote, country/city, citizenship requirements (if mentioned).
-
-Important:
-• Write as briefly as possible, one line per item.
-• No extra words or comments.
-• If there is no information in the job description — skip the item (do not write "no data").
-
-Answer in English.
-
-Job description:
-```
-
----
-
-## 🔍 Visa Sponsorship Feature Details
-
-### How It Works
-
-1. **CSV Upload**: Upload the official UK government CSV file containing all licensed sponsors
-2. **Storage**: File is stored in browser's IndexedDB (no size limits, unlike chrome.storage)
-3. **Company Detection**: Extension automatically extracts company name from LinkedIn job posting
-4. **Smart Matching**: Advanced algorithm matches company names including:
-   - Exact matches
-   - Variations (e.g., "IBM" matches "IBM United Kingdom Limited")
-   - Abbreviations
-   - Different suffixes (Ltd, Limited, PLC, etc.)
-5. **Results Display**: Shows top 5 matches with quality indicators
-
-### Match Quality Indicators
-
-- 🟢 **Exact Match** — Perfect match (score ≥ 90)
-- 🟡 **High Match** — Very likely correct (score ≥ 80)
-- 🔵 **Possible Match** — Might be correct (score < 80)
-
-### Example Results
+## 🎯 Example Output
 
 ```
 🔍 Visa Sponsorship Check
-Searched: Barclays
-✅ Found 3 matches in UK visa sponsorship register!
-Showing top 3 matches sorted by relevance
+Searched: Google UK
+✅ Found in UK visa sponsorship register!
+[Exact Match] Google UK Ltd - London - Skilled Worker
 
-[Exact Match]
-Organisation: Barclays
-Town/City: London
-County: Greater London
-Type & Rating: Worker (A rating)
-Route: Skilled Worker
+Keyword Search Results:
+✅ kubernetes
+✅ python
+✅ CI/CD
+❌ golang
 
-[High Match]
-Organisation: Barclays Bank PLC
-Town/City: Manchester
-County: Greater Manchester
-Type & Rating: Worker (A rating)
-Route: Global Business Mobility: Senior or Specialist Worker
+AI Summary:
+1. Skills: 5+ years DevOps, Kubernetes, Python, AWS, Terraform
+2. Salary: £80,000-£120,000 (estimated UK market rate)
+3. Location: London (Hybrid - 2 days/week office)
+4. Visa: Sponsorship available
 ```
 
 ---
 
-## 🛠️ Technical Details
+## 📚 Documentation
 
-### Architecture
-
-- **Manifest V3** Chrome Extension
-- **Side Panel API** for persistent UI
-- **Content Script** for LinkedIn page interaction
-- **Background Service Worker** for message routing
-- **IndexedDB** for large CSV storage
-- **Chrome Storage** for settings
-
-### Files Structure
-
-```
-linkedin-scraper-ext/
-├── manifest.json          # Extension configuration
-├── background.js          # Service worker
-├── content.js            # LinkedIn page scraper
-├── sidepanel.html        # Side panel UI
-├── sidepanel.js          # Side panel logic
-├── sidepanel.css         # Styling
-├── options.html          # Settings page
-├── options.js            # Settings logic
-└── prompt.txt           # Default prompt (optional)
-```
-
-### Permissions
-
-- `sidePanel` — Side panel UI
-- `scripting` — Inject content scripts
-- `activeTab` — Access current tab
-- `storage` — Save settings
-- `tabs` — Tab management
-- Host permissions for LinkedIn and ChatGPT API
+- **[Full Documentation](docs/README.md)** — Complete guide with all features
+- **[Installation Guide](docs/installation.md)** — Detailed setup instructions
+- **[Visa Sponsorship Guide](docs/visa-sponsorship.md)** — How the checker works
+- **[Troubleshooting](docs/troubleshooting.md)** — Common issues and solutions
+- **[API Reference](docs/api-reference.md)** — Technical details
 
 ---
 
-## 🐛 Troubleshooting
+## 🛠️ Tech Stack
 
-### Company Name Not Detected
-
-1. Open browser console (F12) on LinkedIn page
-2. Filter logs by "LinkedIn Scraper"
-3. Check which selector is being used
-4. Use manual input field as fallback
-
-### CSV Upload Fails
-
-- Error: "Resource::kQuotaBytes quota exceeded"
-  - **Fixed!** Now uses IndexedDB instead of chrome.storage
-  - Supports files 12MB+ without issues
-
-### Visa Check Shows Wrong Companies
-
-- The matching algorithm is strict for short names (≤5 characters)
-- For "Teya", only matches companies with core name exactly "Teya"
-- Won't match "Teya Technologies" or "Teya Systems"
-
-### AI Summary Not Working
-
-1. Check API key in Options
-2. Verify prompt is configured
-3. Check browser console for errors
-4. Try clicking "Stop ChatGPT" and retry
+- Chrome Extension (Manifest V3)
+- Side Panel API
+- IndexedDB (for large CSV storage)
+- ChatGPT API integration
+- Smart fuzzy matching algorithm
 
 ---
 
-## 🔒 Privacy & Security
+## 🔒 Privacy
 
-- ✅ **No data collection** — everything runs locally
-- ✅ **No external servers** — except ChatGPT API (optional)
-- ✅ **API key stored locally** — in Chrome's secure storage
-- ✅ **CSV data stored locally** — in browser's IndexedDB
-- ✅ **No tracking** — no analytics or telemetry
-
----
-
-## 📝 License
-
-MIT — free to use, hack, and share.
-
----
-
-## 🙏 Credits
-
-Original concept by [Anton Dolganin](https://www.linkedin.com/in/antonds/)
-
-Enhanced with:
-- Side panel interface
-- UK visa sponsorship checker
-- Keyword search
-- Auto-send functionality
-- Advanced company name matching
-- IndexedDB storage for large files
+✅ All data processed locally  
+✅ No tracking or analytics  
+✅ API key stored securely in Chrome  
+✅ CSV data stays in your browser  
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
-- Improve documentation
+Contributions welcome! See [CONTRIBUTING.md](docs/CONTRIBUTING.md)
 
 ---
 
-## 📞 Support
+## 📝 License
 
-If you encounter issues:
-1. Check the Troubleshooting section
-2. Review browser console logs
-3. Open an issue on GitHub
+MIT — Free to use, modify, and share
 
 ---
+
+## 🙏 Credits
+
+Original concept: [Anton Dolganin](https://www.linkedin.com/in/antonds/)
+
+Enhanced with side panel, visa checker, keyword search, and auto-updates.
+
+---
+
+**⭐ Star this repo if you find it useful!**
 
 **Happy job hunting! 🎯**
 

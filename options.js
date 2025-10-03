@@ -1,12 +1,43 @@
 (async () => {
     const keyEl = document.getElementById('key');
+    const apiEndpointEl = document.getElementById('api-endpoint');
+    const aiModelEl = document.getElementById('ai-model');
     const promptEl = document.getElementById('prompt');
     const autoSendEl = document.getElementById('auto-send');
     const keywordsEl = document.getElementById('keywords');
     const badKeywordsEl = document.getElementById('bad-keywords');
+    const resumeFileEl = document.getElementById('resume-file');
+    const resumeStatusEl = document.getElementById('resume-status');
     const csvFileEl = document.getElementById('csv-file');
     const csvStatusEl = document.getElementById('csv-status');
     const statusEl = document.getElementById('status');
+
+    // Configure PDF.js worker - use local file
+    if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.js');
+    }
+
+    // PDF parsing function
+    const parsePDF = async (file) => {
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js library not loaded');
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        let fullText = '';
+
+        // Extract text from all pages
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n';
+        }
+
+        return fullText.trim();
+    };
 
     // IndexedDB helper functions
     const openDatabase = () => {
@@ -89,14 +120,30 @@
     // Load settings
     const settings = await chrome.storage.local.get([
         'OPENAI_API_KEY',
+        'API_ENDPOINT',
+        'AI_MODEL',
         'USER_PROMPT',
         'AUTO_SEND_CHATGPT',
         'SEARCH_KEYWORDS',
-        'BAD_KEYWORDS'
+        'BAD_KEYWORDS',
+        'RESUME_TEXT',
+        'RESUME_FILENAME',
+        'RESUME_UPLOAD_DATE'
     ]);
 
     if (settings.OPENAI_API_KEY) {
         keyEl.value = settings.OPENAI_API_KEY;
+    }
+
+    if (settings.API_ENDPOINT) {
+        apiEndpointEl.value = settings.API_ENDPOINT;
+    }
+
+    if (settings.AI_MODEL) {
+        aiModelEl.value = settings.AI_MODEL;
+    } else {
+        // Set default model
+        aiModelEl.value = 'gpt-4o-mini';
     }
 
     if (settings.USER_PROMPT) {
@@ -122,6 +169,58 @@
     if (settings.BAD_KEYWORDS) {
         badKeywordsEl.value = settings.BAD_KEYWORDS;
     }
+
+    // Display resume status
+    if (settings.RESUME_TEXT && settings.RESUME_FILENAME) {
+        const uploadDate = settings.RESUME_UPLOAD_DATE ? new Date(settings.RESUME_UPLOAD_DATE).toLocaleDateString() : 'Unknown';
+        const textLength = settings.RESUME_TEXT.length;
+        resumeStatusEl.textContent = `✓ Loaded: ${settings.RESUME_FILENAME} (${textLength} characters, uploaded ${uploadDate})`;
+        resumeStatusEl.style.color = '#2e7d32';
+    } else {
+        resumeStatusEl.textContent = 'No resume uploaded yet.';
+        resumeStatusEl.style.color = '#666';
+    }
+
+    // Handle resume file upload
+    resumeFileEl.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            resumeStatusEl.textContent = 'Error: Please upload a PDF file';
+            resumeStatusEl.style.color = '#c62828';
+            return;
+        }
+
+        resumeStatusEl.textContent = 'Reading PDF file...';
+        resumeStatusEl.style.color = '#0073b1';
+
+        try {
+            const resumeText = await parsePDF(file);
+
+            if (!resumeText || resumeText.length < 50) {
+                throw new Error('Could not extract text from PDF or text is too short');
+            }
+
+            resumeStatusEl.textContent = 'Saving resume...';
+
+            // Store resume in chrome.storage
+            await chrome.storage.local.set({
+                RESUME_TEXT: resumeText,
+                RESUME_FILENAME: file.name,
+                RESUME_UPLOAD_DATE: new Date().toISOString()
+            });
+
+            const uploadDate = new Date().toLocaleDateString();
+            resumeStatusEl.textContent = `✓ Loaded: ${file.name} (${resumeText.length} characters, uploaded ${uploadDate})`;
+            resumeStatusEl.style.color = '#2e7d32';
+
+        } catch (err) {
+            console.error('Resume upload error:', err);
+            resumeStatusEl.textContent = `Error: ${err.message}`;
+            resumeStatusEl.style.color = '#c62828';
+        }
+    });
 
     // Display CSV file status from IndexedDB
     try {
@@ -217,13 +316,22 @@
     }
 
     document.getElementById('save').onclick = async () => {
-        await chrome.storage.local.set({
+        const settingsToSave = {
             OPENAI_API_KEY: keyEl.value.trim(),
+            API_ENDPOINT: apiEndpointEl.value.trim(),
+            AI_MODEL: aiModelEl.value.trim() || 'gpt-4o-mini',
             USER_PROMPT: promptEl.value,
             AUTO_SEND_CHATGPT: autoSendEl.checked,
             SEARCH_KEYWORDS: keywordsEl.value.trim(),
             BAD_KEYWORDS: badKeywordsEl.value.trim()
+        };
+
+        console.log('Saving settings:', {
+            ...settingsToSave,
+            OPENAI_API_KEY: settingsToSave.OPENAI_API_KEY ? 'Present' : 'Empty'
         });
+
+        await chrome.storage.local.set(settingsToSave);
         statusEl.textContent = 'Saved.';
         setTimeout(() => statusEl.textContent = '', 1500);
     };

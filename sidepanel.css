@@ -497,3 +497,84 @@ a:hover {
     background: #e0e0e0;
 }
 
+/* Cover letter section */
+.cover-letter-container {
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fafafa;
+}
+
+.cover-letter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.cover-letter-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.toggle-btn {
+    background: #0073b1;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.toggle-btn:hover {
+    background: #005885;
+}
+
+.cover-letter-content {
+    margin-top: 12px;
+}
+
+.cover-letter-text {
+    background: white;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.copy-btn {
+    margin-top: 12px;
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.copy-btn:hover {
+    background: #45a049;
+}
+
+.button-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.button-group button {
+    flex: 1 1 auto;
+    min-width: 120px;
+}
+

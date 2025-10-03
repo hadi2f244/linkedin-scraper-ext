@@ -22,12 +22,25 @@
 
     <div class="button-group">
         <button id="send" disabled>Send to ChatGPT</button>
+        <button id="generate-cover-letter" disabled>Generate Cover Letter</button>
         <button id="refresh">Refresh Job Data</button>
     </div>
 
     <hr/>
     <div id="ai-status" class="muted" style="margin-top:6px"></div>
     <div id="ai-output" style="margin-top:6px; font-size:13px; line-height:1.35;"></div>
+
+    <div id="cover-letter-container" class="cover-letter-container" style="display: none;">
+        <div class="cover-letter-header">
+            <h3>📄 Cover Letter</h3>
+            <button id="toggle-cover-letter" class="toggle-btn">Show</button>
+        </div>
+        <div id="cover-letter-content" class="cover-letter-content" style="display: none;">
+            <div id="cover-letter-status" class="muted" style="margin-bottom: 8px;"></div>
+            <div id="cover-letter-text" class="cover-letter-text"></div>
+            <button id="copy-cover-letter" class="copy-btn" style="display: none;">📋 Copy to Clipboard</button>
+        </div>
+    </div>
 
     <p class="muted" style="margin-top:10px; font-size: 11px;">
         Configure in <a id="open-options" href="#">options</a>

@@ -17,6 +17,14 @@
 <label>OpenAI API Key</label>
 <input id="key" type="password" placeholder="sk-..." />
 
+<label>API Endpoint (Optional)</label>
+<input id="api-endpoint" type="text" placeholder="https://chats.qgpt.ir/api/chat/completions" style="width: 640px; max-width: 100%;" />
+<p class="muted">Leave empty to use default OpenAI endpoint (https://api.openai.com/v1/chat/completions). Use custom endpoint for proxies or alternative providers.</p>
+
+<label>AI Model</label>
+<input id="ai-model" type="text" placeholder="gpt-4o-mini" style="width: 640px; max-width: 100%;" />
+<p class="muted">Specify the AI model to use. Common options: gpt-4o-mini, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, gpt-4.1 (for custom endpoints). Default: gpt-4o-mini</p>
+
 <label>Prompt</label>
 <textarea id="prompt"></textarea>
 
@@ -34,6 +42,11 @@
 <input id="bad-keywords" type="text" placeholder="e.g., Azure, relocation required, on-site only" style="width: 640px; max-width: 100%;" />
 <p class="muted">Enter keywords you want to avoid. Jobs containing these keywords will be flagged.</p>
 
+<label style="margin-top: 16px;">Resume / CV (PDF)</label>
+<input id="resume-file" type="file" accept=".pdf" style="margin-bottom: 8px;" />
+<p class="muted">Upload your resume in PDF format. This will be used to generate tailored cover letters.</p>
+<div id="resume-status" class="muted" style="margin-top: 8px;"></div>
+
 <label style="margin-top: 16px;">UK Visa Sponsorship CSV File</label>
 <input id="csv-file" type="file" accept=".csv" style="margin-bottom: 8px;" />
 <p class="muted">Upload the UK Worker and Temporary Worker CSV file from <a href="https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers" target="_blank">gov.uk</a></p>
@@ -44,6 +57,7 @@
     <span id="status" class="muted"></span>
 </div>
 
+<script src="pdf.min.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

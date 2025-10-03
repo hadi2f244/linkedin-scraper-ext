@@ -21,5 +21,11 @@
   ],
   "permissions": ["sidePanel", "scripting", "activeTab", "storage", "tabs"],
   "host_permissions": ["https://www.linkedin.com/*", "https://api.openai.com/*", "https://chats.qgpt.ir/*"],
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": ["pdf.min.js", "pdf.worker.min.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

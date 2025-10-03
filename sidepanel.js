@@ -11,7 +11,14 @@
     const aiStatusEl = $('#ai-status');
     const aiOutputEl = $('#ai-output');
     const sendBtn = $('#send');
+    const generateCoverLetterBtn = $('#generate-cover-letter');
     const refreshBtn = $('#refresh');
+    const coverLetterContainer = $('#cover-letter-container');
+    const toggleCoverLetterBtn = $('#toggle-cover-letter');
+    const coverLetterContent = $('#cover-letter-content');
+    const coverLetterStatus = $('#cover-letter-status');
+    const coverLetterText = $('#cover-letter-text');
+    const copyCoverLetterBtn = $('#copy-cover-letter');
 
     const openOptionsLink = $('#open-options');
     if (openOptionsLink) {
@@ -30,10 +37,39 @@
         }
     };
 
+    // Handle toggle cover letter button
+    toggleCoverLetterBtn.onclick = () => {
+        const isHidden = coverLetterContent.style.display === 'none';
+        if (isHidden) {
+            coverLetterContent.style.display = 'block';
+            toggleCoverLetterBtn.textContent = 'Hide';
+        } else {
+            coverLetterContent.style.display = 'none';
+            toggleCoverLetterBtn.textContent = 'Show';
+        }
+    };
+
+    // Handle copy cover letter button
+    copyCoverLetterBtn.onclick = async () => {
+        try {
+            await navigator.clipboard.writeText(coverLetterText.textContent);
+            const originalText = copyCoverLetterBtn.textContent;
+            copyCoverLetterBtn.textContent = '✓ Copied!';
+            setTimeout(() => {
+                copyCoverLetterBtn.textContent = originalText;
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+            alert('Failed to copy to clipboard');
+        }
+    };
+
     let currentJobText = '';
     let currentCompanyName = '';
     let abortController = null; // For canceling fetch requests
+    let coverLetterAbortController = null; // For canceling cover letter requests
     let isSending = false;
+    let isGeneratingCoverLetter = false;
 
     const setError = (msg) => {
         statusEl.className = 'error';
@@ -512,6 +548,9 @@
         } catch (error) {
             console.error('Error attaching event listeners:', error);
         }
+
+        // Update cover letter button state
+        updateCoverLetterButtonState();
     };
 
     // Toggle more matches section
@@ -691,7 +730,7 @@
         abortController = new AbortController();
 
         // Retrieve settings
-        const { OPENAI_API_KEY, USER_PROMPT } = await chrome.storage.local.get(['OPENAI_API_KEY', 'USER_PROMPT']);
+        const { OPENAI_API_KEY, API_ENDPOINT, AI_MODEL, USER_PROMPT } = await chrome.storage.local.get(['OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL', 'USER_PROMPT']);
 
         // If key/prompt not found — try to load prompt.txt as default
         let prompt = USER_PROMPT || '';
@@ -719,15 +758,22 @@
         // Final prompt: append the job text at the end
         const fullPrompt = `${prompt.trim()}\n\n-----${currentJobText}`;
 
+        // Use custom endpoint if configured, otherwise use default
+        const apiUrl = API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
+        const aiModel = AI_MODEL || 'gpt-4o-mini';
+
+        console.log('Send to ChatGPT - API URL:', apiUrl);
+        console.log('Send to ChatGPT - AI Model:', aiModel);
+
         try {
-            const resp = await fetch('https://chats.qgpt.ir/api/chat/completions', {
+            const resp = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${OPENAI_API_KEY}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    model: 'gpt-4.1',
+                    model: aiModel,
                     messages: [
                         { role: 'system', content: 'You are a summarizing assistant. Answer concisely, in a structured manner, and to the point.' },
                         { role: 'user', content: fullPrompt }
@@ -768,6 +814,151 @@
         abortController = null;
     };
 
+    // Reset cover letter button to original state
+    const resetCoverLetterButton = () => {
+        isGeneratingCoverLetter = false;
+        generateCoverLetterBtn.textContent = 'Generate Cover Letter';
+        generateCoverLetterBtn.style.background = '';
+        coverLetterAbortController = null;
+        updateCoverLetterButtonState();
+    };
+
+    // Update cover letter button state based on conditions
+    const updateCoverLetterButtonState = async () => {
+        const { RESUME_TEXT } = await chrome.storage.local.get(['RESUME_TEXT']);
+        const hasResume = RESUME_TEXT && RESUME_TEXT.length > 0;
+        const hasJobData = currentJobText && currentJobText.length > 0;
+
+        generateCoverLetterBtn.disabled = !hasResume || !hasJobData || isGeneratingCoverLetter;
+
+        if (!hasResume) {
+            generateCoverLetterBtn.title = 'Please upload a resume in options';
+        } else if (!hasJobData) {
+            generateCoverLetterBtn.title = 'Please load job data first';
+        } else {
+            generateCoverLetterBtn.title = 'Generate a tailored cover letter';
+        }
+    };
+
+    // Function to generate cover letter
+    const generateCoverLetter = async () => {
+        if (!currentJobText) {
+            coverLetterStatus.textContent = 'No job data available.';
+            return;
+        }
+
+        // Get resume from storage
+        const { RESUME_TEXT, OPENAI_API_KEY, API_ENDPOINT, AI_MODEL } = await chrome.storage.local.get(['RESUME_TEXT', 'OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL']);
+
+        console.log('Cover letter generation - API_ENDPOINT:', API_ENDPOINT);
+        console.log('Cover letter generation - AI_MODEL:', AI_MODEL);
+        console.log('Cover letter generation - OPENAI_API_KEY:', OPENAI_API_KEY ? 'Present' : 'Missing');
+        console.log('Cover letter generation - RESUME_TEXT length:', RESUME_TEXT ? RESUME_TEXT.length : 0);
+
+        if (!RESUME_TEXT) {
+            coverLetterStatus.textContent = 'No resume uploaded. Please upload your resume in options.';
+            coverLetterStatus.style.color = '#c62828';
+            return;
+        }
+
+        if (!OPENAI_API_KEY) {
+            coverLetterStatus.textContent = 'No OpenAI API key configured. Please add it in options.';
+            coverLetterStatus.style.color = '#c62828';
+            return;
+        }
+
+        // Show cover letter container and expand it
+        coverLetterContainer.style.display = 'block';
+        coverLetterContent.style.display = 'block';
+        toggleCoverLetterBtn.textContent = 'Hide';
+
+        // Change button to "Stop Generation"
+        isGeneratingCoverLetter = true;
+        generateCoverLetterBtn.textContent = 'Stop Generation';
+        generateCoverLetterBtn.style.background = '#d32f2f';
+
+        coverLetterText.textContent = '';
+        coverLetterStatus.textContent = 'Generating cover letter...';
+        coverLetterStatus.style.color = '#0073b1';
+        copyCoverLetterBtn.style.display = 'none';
+
+        // Create new abort controller
+        coverLetterAbortController = new AbortController();
+
+        // Create cover letter prompt
+        const coverLetterPrompt = `You are a professional career advisor. Based on the following resume and job description, write a compelling, professional cover letter.
+
+RESUME:
+${RESUME_TEXT}
+
+JOB DESCRIPTION:
+${currentJobText}
+
+Please write a cover letter that:
+1. Is professional and well-structured
+2. Highlights relevant experience from the resume that matches the job requirements
+3. Shows genuine enthusiasm for the position
+4. Is concise (around 300-400 words)
+5. Follows standard cover letter format (greeting, body paragraphs, closing)
+6. Uses a confident but not arrogant tone
+7. Addresses specific requirements mentioned in the job description
+
+Write only the cover letter text, without any additional commentary or explanations.`;
+
+        // Use custom endpoint if configured, otherwise use default
+        const apiUrl = API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
+        const aiModel = AI_MODEL || 'gpt-4o-mini';
+
+        console.log('Cover letter generation - Using API URL:', apiUrl);
+        console.log('Cover letter generation - Using AI Model:', aiModel);
+
+        try {
+            const resp = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${OPENAI_API_KEY}`
+                },
+                body: JSON.stringify({
+                    model: aiModel,
+                    messages: [
+                        { role: 'user', content: coverLetterPrompt }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 1000
+                }),
+                signal: coverLetterAbortController.signal
+            });
+
+            if (!resp.ok) {
+                const errorData = await resp.json().catch(() => ({}));
+                throw new Error(errorData.error?.message || `HTTP ${resp.status}`);
+            }
+
+            const data = await resp.json();
+            const coverLetter = data?.choices?.[0]?.message?.content?.trim() || '(empty response)';
+
+            coverLetterStatus.textContent = 'Cover letter generated ✓';
+            coverLetterStatus.style.color = '#2e7d32';
+            coverLetterText.textContent = coverLetter;
+            copyCoverLetterBtn.style.display = 'block';
+
+            // Reset button after successful response
+            resetCoverLetterButton();
+
+        } catch (err) {
+            console.error('Cover letter generation error:', err);
+            if (err.name === 'AbortError') {
+                coverLetterStatus.textContent = 'Generation cancelled.';
+                coverLetterStatus.style.color = '#666';
+            } else {
+                coverLetterStatus.textContent = 'Error: ' + err.message;
+                coverLetterStatus.style.color = '#c62828';
+            }
+            resetCoverLetterButton();
+        }
+    };
+
     // Refresh button handler
     refreshBtn.onclick = requestJobDataFromTab;
 
@@ -783,9 +974,24 @@
         }
     };
 
+    // Generate cover letter button handler
+    generateCoverLetterBtn.onclick = () => {
+        if (isGeneratingCoverLetter && coverLetterAbortController) {
+            // Stop the generation
+            coverLetterAbortController.abort();
+            resetCoverLetterButton();
+        } else {
+            // Generate cover letter
+            generateCoverLetter();
+        }
+    };
+
     // Initialize: request job data from current tab
     setStatus('Initializing...');
     setTimeout(requestJobDataFromTab, 500);
+
+    // Initialize cover letter button state
+    updateCoverLetterButtonState();
 
 })();
 

@@ -344,37 +344,121 @@ a:hover {
 
 /* Keyword search results */
 .keyword-results {
-    background: #f0f8ff;
-    border: 1px solid #0073b1;
+    background: #f9f9f9;
     border-radius: 6px;
-    padding: 12px 16px;
+    padding: 10px 12px;
     margin: 12px 0;
-}
-
-.keyword-results h3 {
-    margin: 0 0 10px 0;
-    font-size: 14px;
-    color: #0073b1;
-    font-weight: 600;
-}
-
-.keyword-results ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.keyword-results li {
-    padding: 6px 0;
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.8;
 }
 
-.keyword-found {
+.keyword-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 2px 4px 2px 0;
+    border-radius: 12px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.keyword-tag.keyword-found {
+    background: #e8f5e9;
     color: #2e7d32;
 }
 
-.keyword-not-found {
+.keyword-tag.keyword-not-found {
+    background: #ffebee;
     color: #c62828;
+}
+
+/* Show more matches button */
+.more-matches-section {
+    margin-top: 12px;
+}
+
+.show-more-matches-btn {
+    width: 100%;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.show-more-matches-btn:hover {
+    background: #e0e0e0;
+    color: #333;
+    border-color: #ccc;
+}
+
+.more-matches-list {
+    margin-top: 12px;
+}
+
+/* Edit company name section */
+.edit-company-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    margin-left: 4px;
+    color: #0073b1;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.edit-company-btn:hover {
+    background: #f0f0f0;
+}
+
+.edit-company-section {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.edit-company-input {
+    flex: 1 1 auto;
+    min-width: 120px;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.search-edited-btn,
+.cancel-edit-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+.search-edited-btn {
+    background: #0073b1;
+    color: white;
+}
+
+.search-edited-btn:hover {
+    background: #005885;
+}
+
+.cancel-edit-btn {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.cancel-edit-btn:hover {
+    background: #e0e0e0;
 }
 

@@ -9,22 +9,7 @@
 <body>
 <div id="root">
     <div class="header">
-        <h2>LinkedIn Job Summary</h2>
         <div id="status">Waiting for job data...</div>
-    </div>
-
-    <div class="button-group">
-        <button id="send" disabled>Send to ChatGPT</button>
-        <button id="refresh">Refresh Job Data</button>
-    </div>
-
-    <div class="company-input-section">
-        <label for="company-name-input">Company Name (for visa check):</label>
-        <div style="display: flex; gap: 8px;">
-            <input type="text" id="company-name-input" placeholder="Enter company name manually if not detected" />
-            <button id="check-visa-btn" style="flex: 0 0 auto; padding: 8px 12px;">Check Visa</button>
-        </div>
-        <p class="muted" style="font-size: 11px; margin: 4px 0 0 0;">Use this if company name is not automatically detected</p>
     </div>
 
     <div id="content"></div>
@@ -35,12 +20,17 @@
         <div id="raw-text-full" class="raw-text-full"></div>
     </div>
 
+    <div class="button-group">
+        <button id="send" disabled>Send to ChatGPT</button>
+        <button id="refresh">Refresh Job Data</button>
+    </div>
+
     <hr/>
     <div id="ai-status" class="muted" style="margin-top:6px"></div>
     <div id="ai-output" style="margin-top:6px; font-size:13px; line-height:1.35;"></div>
 
-    <p class="muted" style="margin-top:10px">
-        Key/prompt can be configured in <a id="open-options" href="#">options</a>.
+    <p class="muted" style="margin-top:10px; font-size: 11px;">
+        Configure in <a id="open-options" href="#">options</a>
     </p>
 </div>
 <script src="sidepanel.js"></script>

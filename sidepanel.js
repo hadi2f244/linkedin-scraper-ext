@@ -12,10 +12,11 @@
     const aiOutputEl = $('#ai-output');
     const sendBtn = $('#send');
     const refreshBtn = $('#refresh');
-    const companyNameInput = $('#company-name-input');
-    const checkVisaBtn = $('#check-visa-btn');
 
-    $('#open-options').onclick = () => chrome.runtime.openOptionsPage();
+    const openOptionsLink = $('#open-options');
+    if (openOptionsLink) {
+        openOptionsLink.onclick = () => chrome.runtime.openOptionsPage();
+    }
 
     // Handle Read More button
     readMoreBtn.onclick = () => {
@@ -237,8 +238,7 @@
         if (!companyName || companyName.trim() === '') {
             console.log('No company name provided for visa check');
             return `<div class="visa-results visa-no-data">
-                <h3>🔍 Visa Sponsorship Check</h3>
-                <p class="warning">⚠️ Could not extract company name from LinkedIn page. The company name is needed to check visa sponsorship status.</p>
+                <p class="company-name"><strong>Visa:</strong> <span class="warning">⚠️ No company name detected</span></p>
             </div>`;
         }
 
@@ -249,9 +249,16 @@
 
         if (!hasData) {
             return `<div class="visa-results visa-no-data">
-                <h3>🔍 Visa Sponsorship Check</h3>
-                <p class="company-name">Company: <strong>${companyName}</strong></p>
-                <p class="warning">⚠️ No CSV data loaded. Please upload the UK visa sponsorship CSV file in the options page.</p>
+                <p class="company-name">
+                    <strong>Visa:</strong> <span id="visa-searched-company">${companyName}</span>
+                    <button id="edit-company-name-btn" class="edit-company-btn" title="Edit company name">✏️</button>
+                </p>
+                <div id="edit-company-section" class="edit-company-section" style="display: none;">
+                    <input type="text" id="edit-company-input" class="edit-company-input" value="${companyName}" placeholder="Enter company name">
+                    <button id="search-edited-company-btn" class="search-edited-btn">Search</button>
+                    <button id="cancel-edit-company-btn" class="cancel-edit-btn">Cancel</button>
+                </div>
+                <p class="warning" style="margin-top: 8px;">⚠️ No CSV data loaded. Upload in <a href="#" id="open-options-link">options</a>.</p>
             </div>`;
         }
 
@@ -260,53 +267,110 @@
 
         if (matches.length === 0) {
             return `<div class="visa-results visa-not-found">
-                <h3>🔍 Visa Sponsorship Check</h3>
-                <p class="company-name">Company: <strong>${companyName}</strong></p>
-                <p class="status-not-found">❌ <strong>Not found</strong> in UK visa sponsorship register</p>
-                <p class="muted">This company does not appear to have a UK visa sponsorship license.</p>
+                <p class="company-name">
+                    <strong>Visa:</strong> <span id="visa-searched-company">${companyName}</span>
+                    <button id="edit-company-name-btn" class="edit-company-btn" title="Edit company name">✏️</button>
+                </p>
+                <div id="edit-company-section" class="edit-company-section" style="display: none;">
+                    <input type="text" id="edit-company-input" class="edit-company-input" value="${companyName}" placeholder="Enter company name">
+                    <button id="search-edited-company-btn" class="search-edited-btn">Search</button>
+                    <button id="cancel-edit-company-btn" class="cancel-edit-btn">Cancel</button>
+                </div>
+                <p class="status-not-found" style="margin-top: 8px;">❌ Not found in UK visa sponsorship register</p>
             </div>`;
         }
 
         // Found matches - display top results
-        const matchText = matches.length === 1 ? '1 match' : `${matches.length} matches`;
         let html = `<div class="visa-results visa-found">
-            <h3>🔍 Visa Sponsorship Check</h3>
-            <p class="company-name">Searched: <strong>${companyName}</strong></p>
-            <p class="status-found">✅ <strong>Found ${matchText} in UK visa sponsorship register!</strong></p>`;
+            <p class="company-name">
+                <strong>Visa:</strong> <span id="visa-searched-company">${companyName}</span>
+                <button id="edit-company-name-btn" class="edit-company-btn" title="Edit company name">✏️</button>
+            </p>
+            <div id="edit-company-section" class="edit-company-section" style="display: none;">
+                <input type="text" id="edit-company-input" class="edit-company-input" value="${companyName}" placeholder="Enter company name">
+                <button id="search-edited-company-btn" class="search-edited-btn">Search</button>
+                <button id="cancel-edit-company-btn" class="cancel-edit-btn">Cancel</button>
+            </div>`;
 
-        if (matches.length > 1) {
-            html += `<p class="muted" style="font-size: 12px; margin: 4px 0;">Showing top ${matches.length} matches sorted by relevance</p>`;
+        // Show first match
+        const firstMatch = matches[0];
+        let matchQuality = '';
+        if (firstMatch.matchScore >= 90) {
+            matchQuality = '<span class="match-quality exact">Exact Match</span>';
+        } else if (firstMatch.matchScore >= 80) {
+            matchQuality = '<span class="match-quality high">High Match</span>';
+        } else {
+            matchQuality = '<span class="match-quality medium">Possible Match</span>';
         }
 
-        html += `<div class="visa-details">`;
+        html += `
+            <div class="visa-record collapsed" id="visa-record-0">
+                <div class="visa-record-header" data-record-id="visa-record-0">
+                    ${matchQuality}
+                    <div class="visa-record-title">
+                        <strong>✅ ${firstMatch['Organisation Name'] || 'N/A'}</strong>
+                        <span class="visa-location">${firstMatch['Town/City'] || 'N/A'}</span>
+                    </div>
+                    <button class="visa-expand-btn">▼ Details</button>
+                </div>
+                <div class="visa-record-details">
+                    <div class="visa-field"><span class="label">County:</span> ${firstMatch['County'] || 'N/A'}</div>
+                    <div class="visa-field"><span class="label">Type & Rating:</span> <span class="badge">${firstMatch['Type & Rating'] || 'N/A'}</span></div>
+                    <div class="visa-field"><span class="label">Route:</span> <span class="badge route">${firstMatch['Route'] || 'N/A'}</span></div>
+                </div>
+            </div>
+        `;
 
-        matches.forEach((match, index) => {
-            // Show match quality indicator
-            let matchQuality = '';
-            if (match.matchScore >= 90) {
-                matchQuality = '<span class="match-quality exact">Exact Match</span>';
-            } else if (match.matchScore >= 80) {
-                matchQuality = '<span class="match-quality high">High Match</span>';
-            } else {
-                matchQuality = '<span class="match-quality medium">Possible Match</span>';
-            }
+        // If there are more matches, show "Show more matches" button
+        if (matches.length > 1) {
+            html += `
+                <div id="more-matches-section" class="more-matches-section">
+                    <button id="show-more-matches-btn" class="show-more-matches-btn">
+                        ▼ Show ${matches.length - 1} more ${matches.length - 1 === 1 ? 'match' : 'matches'}
+                    </button>
+                    <div id="more-matches-list" class="more-matches-list" style="display: none;">
+            `;
+
+            // Show remaining matches
+            matches.slice(1).forEach((match, index) => {
+                const actualIndex = index + 1;
+                let matchQuality = '';
+                if (match.matchScore >= 90) {
+                    matchQuality = '<span class="match-quality exact">Exact Match</span>';
+                } else if (match.matchScore >= 80) {
+                    matchQuality = '<span class="match-quality high">High Match</span>';
+                } else {
+                    matchQuality = '<span class="match-quality medium">Possible Match</span>';
+                }
+
+                const recordId = `visa-record-${actualIndex}`;
+
+                html += `
+                    <div class="visa-record collapsed" id="${recordId}">
+                        <div class="visa-record-header" data-record-id="${recordId}">
+                            ${matchQuality}
+                            <div class="visa-record-title">
+                                <strong>${match['Organisation Name'] || 'N/A'}</strong>
+                                <span class="visa-location">${match['Town/City'] || 'N/A'}</span>
+                            </div>
+                            <button class="visa-expand-btn">▼ Details</button>
+                        </div>
+                        <div class="visa-record-details">
+                            <div class="visa-field"><span class="label">County:</span> ${match['County'] || 'N/A'}</div>
+                            <div class="visa-field"><span class="label">Type & Rating:</span> <span class="badge">${match['Type & Rating'] || 'N/A'}</span></div>
+                            <div class="visa-field"><span class="label">Route:</span> <span class="badge route">${match['Route'] || 'N/A'}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
 
             html += `
-                <div class="visa-record">
-                    ${matchQuality}
-                    <div class="visa-field"><span class="label">Organisation:</span> <strong>${match['Organisation Name'] || 'N/A'}</strong></div>
-                    <div class="visa-field"><span class="label">Town/City:</span> ${match['Town/City'] || 'N/A'}</div>
-                    <div class="visa-field"><span class="label">County:</span> ${match['County'] || 'N/A'}</div>
-                    <div class="visa-field"><span class="label">Type & Rating:</span> <span class="badge">${match['Type & Rating'] || 'N/A'}</span></div>
-                    <div class="visa-field"><span class="label">Route:</span> <span class="badge route">${match['Route'] || 'N/A'}</span></div>
+                    </div>
                 </div>
             `;
-            if (index < matches.length - 1) {
-                html += '<hr class="visa-divider">';
-            }
-        });
+        }
 
-        html += `</div></div>`;
+        html += `</div>`;
         return html;
     };
 
@@ -322,16 +386,17 @@
         }
 
         const lowerJobText = jobText.toLowerCase();
-        let html = '<div class="keyword-results"><h3>Keyword Search Results:</h3><ul>';
+        let html = '<div class="keyword-results"><strong>Keywords:</strong> ';
 
-        keywordList.forEach(keyword => {
+        const keywordTags = keywordList.map(keyword => {
             const found = lowerJobText.includes(keyword.toLowerCase());
             const icon = found ? '✅' : '❌';
             const className = found ? 'keyword-found' : 'keyword-not-found';
-            html += `<li class="${className}">${icon} <strong>${keyword}</strong></li>`;
+            return `<span class="keyword-tag ${className}">${icon} ${keyword}</span>`;
         });
 
-        html += '</ul></div>';
+        html += keywordTags.join(' ');
+        html += '</div>';
         return html;
     };
 
@@ -358,11 +423,6 @@
         currentJobText = normalizeText(jobText);
         currentCompanyName = companyName;
 
-        // Update company name input field
-        if (companyName) {
-            companyNameInput.value = companyName;
-        }
-
         setStatus('Job data loaded ✓');
 
         // Show raw text in expandable section
@@ -379,19 +439,181 @@
         const { AUTO_SEND_CHATGPT, SEARCH_KEYWORDS } = await chrome.storage.local.get(['AUTO_SEND_CHATGPT', 'SEARCH_KEYWORDS']);
 
         // Check visa sponsorship
-        const visaHtml = await checkVisaSponsorship(companyName);
+        let visaHtml = '';
+        try {
+            visaHtml = await checkVisaSponsorship(companyName);
+            console.log('Visa HTML generated, length:', visaHtml ? visaHtml.length : 0);
+        } catch (error) {
+            console.error('Error in checkVisaSponsorship:', error);
+            visaHtml = `<div class="visa-results"><p class="warning">Error checking visa: ${error.message}</p></div>`;
+        }
 
         // Display keyword search results
-        const keywordHtml = checkKeywords(currentJobText, SEARCH_KEYWORDS);
+        let keywordHtml = '';
+        try {
+            keywordHtml = checkKeywords(currentJobText, SEARCH_KEYWORDS);
+            console.log('Keyword HTML generated, length:', keywordHtml ? keywordHtml.length : 0);
+        } catch (error) {
+            console.error('Error in checkKeywords:', error);
+            keywordHtml = `<div class="keyword-results"><p class="warning">Error checking keywords: ${error.message}</p></div>`;
+        }
+
+        const combinedHtml = visaHtml + keywordHtml;
+        console.log('Combined HTML length:', combinedHtml.length);
+        console.log('Combined HTML preview:', combinedHtml.substring(0, 300));
 
         if (AUTO_SEND_CHATGPT) {
-            contentEl.innerHTML = visaHtml + keywordHtml + `<div class="muted" style="margin-top: 12px;">Job details extracted. Sending to ChatGPT automatically...</div>`;
+            contentEl.innerHTML = combinedHtml + `<div class="muted" style="margin-top: 12px;">Sending to ChatGPT automatically...</div>`;
             // Automatically send to ChatGPT after data is loaded
             setTimeout(() => {
                 sendToChatGPT();
             }, 500);
         } else {
-            contentEl.innerHTML = visaHtml + keywordHtml + `<div class="muted" style="margin-top: 12px;">Job details extracted. Click "Send to ChatGPT" to get a summary.</div>`;
+            contentEl.innerHTML = combinedHtml;
+        }
+
+        console.log('Content element innerHTML set, length:', contentEl.innerHTML.length);
+
+        // Attach event listeners for edit company name functionality
+        try {
+            attachVisaEventListeners();
+            console.log('Event listeners attached');
+        } catch (error) {
+            console.error('Error attaching event listeners:', error);
+        }
+    };
+
+    // Toggle visa record expand/collapse
+    const toggleVisaRecord = (recordId) => {
+        const record = document.getElementById(recordId);
+        if (!record) return;
+
+        const isCollapsed = record.classList.contains('collapsed');
+        const btn = record.querySelector('.visa-expand-btn');
+
+        if (isCollapsed) {
+            record.classList.remove('collapsed');
+            record.classList.add('expanded');
+            if (btn) btn.textContent = '▲ Hide';
+        } else {
+            record.classList.add('collapsed');
+            record.classList.remove('expanded');
+            if (btn) btn.textContent = '▼ Details';
+        }
+    };
+
+    // Toggle more matches section
+    const toggleMoreMatches = () => {
+        const moreMatchesList = document.getElementById('more-matches-list');
+        const btn = document.getElementById('show-more-matches-btn');
+
+        if (!moreMatchesList || !btn) return;
+
+        const isHidden = moreMatchesList.style.display === 'none';
+
+        if (isHidden) {
+            moreMatchesList.style.display = 'block';
+            const count = moreMatchesList.querySelectorAll('.visa-record').length;
+            btn.textContent = `▲ Hide ${count} ${count === 1 ? 'match' : 'matches'}`;
+        } else {
+            moreMatchesList.style.display = 'none';
+            const count = moreMatchesList.querySelectorAll('.visa-record').length;
+            btn.textContent = `▼ Show ${count} more ${count === 1 ? 'match' : 'matches'}`;
+        }
+    };
+
+    // Attach event listeners for visa section
+    const attachVisaEventListeners = () => {
+        // Use event delegation for dynamically created elements
+        contentEl.removeEventListener('click', handleVisaClicks);
+        contentEl.addEventListener('click', handleVisaClicks);
+
+        // Allow Enter key to search
+        const input = document.getElementById('edit-company-input');
+        if (input) {
+            input.removeEventListener('keypress', handleEnterKey);
+            input.addEventListener('keypress', handleEnterKey);
+        }
+    };
+
+    // Handle all visa-related clicks with event delegation
+    const handleVisaClicks = async (e) => {
+        const target = e.target;
+
+        // Edit company name button
+        if (target.id === 'edit-company-name-btn' || target.closest('#edit-company-name-btn')) {
+            const editSection = document.getElementById('edit-company-section');
+            const searchedCompany = document.getElementById('visa-searched-company');
+            const editBtn = document.getElementById('edit-company-name-btn');
+            if (editSection && searchedCompany && editBtn) {
+                editSection.style.display = 'flex';
+                searchedCompany.style.display = 'none';
+                editBtn.style.display = 'none';
+                document.getElementById('edit-company-input').focus();
+            }
+            return;
+        }
+
+        // Cancel edit button
+        if (target.id === 'cancel-edit-company-btn' || target.closest('#cancel-edit-company-btn')) {
+            const editSection = document.getElementById('edit-company-section');
+            const searchedCompany = document.getElementById('visa-searched-company');
+            const editBtn = document.getElementById('edit-company-name-btn');
+            if (editSection && searchedCompany && editBtn) {
+                editSection.style.display = 'none';
+                searchedCompany.style.display = 'inline';
+                editBtn.style.display = 'inline';
+            }
+            return;
+        }
+
+        // Search edited company button
+        if (target.id === 'search-edited-company-btn' || target.closest('#search-edited-company-btn')) {
+            const input = document.getElementById('edit-company-input');
+            if (input && input.value.trim()) {
+                const newCompanyName = input.value.trim();
+
+                // Update the current company name
+                currentCompanyName = newCompanyName;
+
+                // Re-run visa check with new company name
+                const visaHtml = await checkVisaSponsorship(newCompanyName);
+
+                // Get keywords HTML
+                const { SEARCH_KEYWORDS } = await chrome.storage.local.get(['SEARCH_KEYWORDS']);
+                const keywordHtml = checkKeywords(currentJobText, SEARCH_KEYWORDS);
+
+                // Update content
+                contentEl.innerHTML = visaHtml + keywordHtml;
+
+                // Re-attach event listeners
+                attachVisaEventListeners();
+            }
+            return;
+        }
+
+        // Toggle visa record expand/collapse
+        const recordHeader = target.closest('.visa-record-header');
+        if (recordHeader) {
+            const recordId = recordHeader.getAttribute('data-record-id');
+            if (recordId) {
+                toggleVisaRecord(recordId);
+            }
+            return;
+        }
+
+        // Show more matches button
+        if (target.id === 'show-more-matches-btn' || target.closest('#show-more-matches-btn')) {
+            toggleMoreMatches();
+            return;
+        }
+    };
+
+    // Handle Enter key in edit input
+    const handleEnterKey = (e) => {
+        if (e.key === 'Enter') {
+            const searchBtn = document.getElementById('search-edited-company-btn');
+            if (searchBtn) searchBtn.click();
         }
     };
 
@@ -556,24 +778,6 @@
             // Send to ChatGPT
             sendToChatGPT();
         }
-    };
-
-    // Manual visa check button handler
-    checkVisaBtn.onclick = async () => {
-        const manualCompanyName = companyNameInput.value.trim();
-        if (!manualCompanyName) {
-            alert('Please enter a company name');
-            return;
-        }
-
-        currentCompanyName = manualCompanyName;
-
-        // Re-run the visa check with the manual company name
-        const { SEARCH_KEYWORDS } = await chrome.storage.local.get(['SEARCH_KEYWORDS']);
-        const visaHtml = await checkVisaSponsorship(manualCompanyName);
-        const keywordHtml = checkKeywords(currentJobText, SEARCH_KEYWORDS);
-
-        contentEl.innerHTML = visaHtml + keywordHtml + `<div class="muted" style="margin-top: 12px;">Job details extracted. Click "Send to ChatGPT" to get a summary.</div>`;
     };
 
     // Initialize: request job data from current tab

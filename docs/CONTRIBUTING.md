@@ -157,7 +157,7 @@ Help make the extension available in other languages (future)
 1. **Fork the repository**
 2. **Clone your fork:**
    ```bash
-   git clone https://github.com/yourusername/linkedin-scraper-ext
+   git clone https://github.com/hadi2f244/linkedin-scraper-ext
    cd linkedin-scraper-ext
    ```
 3. **Create a branch:**

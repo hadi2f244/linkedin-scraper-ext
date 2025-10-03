@@ -18,7 +18,7 @@ Complete step-by-step guide to install and configure the LinkedIn Job Scraper & 
 ### Option A: Clone with Git
 
 ```bash
-git clone https://github.com/yourusername/linkedin-scraper-ext
+git clone https://github.com/hadi2f244/linkedin-scraper-ext
 cd linkedin-scraper-ext
 ```
 

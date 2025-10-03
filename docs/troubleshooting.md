@@ -645,5 +645,5 @@ linkedin-scraper-ext/
 
 ---
 
-**Still having issues?** Open a [GitHub issue](https://github.com/yourusername/linkedin-scraper-ext/issues) with details.
+**Still having issues?** Open a [GitHub issue](https://github.com/hadi2f244/linkedin-scraper-ext/issues) with details.
 

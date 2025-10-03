@@ -33,7 +33,7 @@
 ### 1. Install
 
 ```bash
-git clone https://github.com/yourusername/linkedin-scraper-ext
+git clone https://github.com/hadi2f244/linkedin-scraper-ext
 ```
 
 1. Open `chrome://extensions/`

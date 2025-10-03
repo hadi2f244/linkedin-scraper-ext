@@ -18,6 +18,15 @@
         <button id="refresh">Refresh Job Data</button>
     </div>
 
+    <div class="company-input-section">
+        <label for="company-name-input">Company Name (for visa check):</label>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="company-name-input" placeholder="Enter company name manually if not detected" />
+            <button id="check-visa-btn" style="flex: 0 0 auto; padding: 8px 12px;">Check Visa</button>
+        </div>
+        <p class="muted" style="font-size: 11px; margin: 4px 0 0 0;">Use this if company name is not automatically detected</p>
+    </div>
+
     <div id="content"></div>
 
     <div id="raw-text-container" class="raw-text-container collapsed">

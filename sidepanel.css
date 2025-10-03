@@ -53,6 +53,35 @@ body {
     margin-bottom: 16px;
 }
 
+.company-input-section {
+    background: #f9f9f9;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #e0e0e0;
+}
+
+.company-input-section label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.company-input-section input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.company-input-section input[type="text"]:focus {
+    outline: none;
+    border-color: #0073b1;
+}
+
 button {
     background: #0073b1;
     color: white;
@@ -163,6 +192,154 @@ a {
 
 a:hover {
     text-decoration: underline;
+}
+
+/* Visa sponsorship results */
+.visa-results {
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.visa-results h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.visa-results .company-name {
+    font-size: 14px;
+    margin: 8px 0;
+    color: #333;
+}
+
+.visa-found {
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
+    border: 2px solid #4caf50;
+}
+
+.visa-found h3 {
+    color: #2e7d32;
+}
+
+.visa-not-found {
+    background: linear-gradient(135deg, #ffebee 0%, #fef5f5 100%);
+    border: 2px solid #f44336;
+}
+
+.visa-not-found h3 {
+    color: #c62828;
+}
+
+.visa-no-data {
+    background: linear-gradient(135deg, #fff3e0 0%, #fef9f3 100%);
+    border: 2px solid #ff9800;
+}
+
+.visa-no-data h3 {
+    color: #e65100;
+}
+
+.status-found {
+    color: #2e7d32;
+    font-size: 14px;
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 4px;
+}
+
+.status-not-found {
+    color: #c62828;
+    font-size: 14px;
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: rgba(244, 67, 54, 0.1);
+    border-radius: 4px;
+}
+
+.visa-details {
+    margin-top: 12px;
+}
+
+.visa-record {
+    background: white;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 8px 0;
+    position: relative;
+}
+
+.match-quality {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+.match-quality.exact {
+    background: #c8e6c9;
+    color: #2e7d32;
+}
+
+.match-quality.high {
+    background: #fff9c4;
+    color: #f57f17;
+}
+
+.match-quality.medium {
+    background: #e1f5fe;
+    color: #0277bd;
+}
+
+.visa-field {
+    padding: 6px 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.visa-field .label {
+    color: #666;
+    font-weight: 500;
+    display: inline-block;
+    min-width: 100px;
+}
+
+.visa-field strong {
+    color: #2e7d32;
+}
+
+.visa-field .badge {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.visa-field .badge.route {
+    background: #f3e5f5;
+    color: #6a1b9a;
+}
+
+.visa-divider {
+    border: none;
+    border-top: 1px dashed #ccc;
+    margin: 12px 0;
+}
+
+.warning {
+    color: #e65100;
+    font-size: 13px;
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: rgba(255, 152, 0, 0.1);
+    border-radius: 4px;
 }
 
 /* Keyword search results */

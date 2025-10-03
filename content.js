@@ -18,32 +18,146 @@ const normalizeText = (t) => {
     .trim();
 };
 
+// Extract company name from the page
+const extractCompanyName = () => {
+  console.log('[LinkedIn Scraper] Attempting to extract company name...');
+
+  // Try multiple selectors in order of reliability
+  const selectors = [
+    // Primary - the div with class and anchor inside
+    { selector: '.job-details-jobs-unified-top-card__company-name a', name: 'Primary (div.company-name > a)' },
+    { selector: '.job-details-jobs-unified-top-card__company-name', name: 'Primary (div.company-name)', getAnchor: true },
+    // Alternative - look for any anchor with company link in the top card area
+    { selector: '.job-details-jobs-unified-top-card__container--two-pane a[href*="/company/"]', name: 'Top card company link' },
+    { selector: '.display-flex.align-items-center.flex-1 > div > a', name: 'Flex container anchor' },
+    // Fallbacks
+    { selector: '.jobs-unified-top-card__company-name a', name: 'Fallback 1' },
+    { selector: '.jobs-unified-top-card__company-name', name: 'Fallback 2', getAnchor: true },
+    { selector: 'a[data-tracking-control-name="public_jobs_topcard-org-name"]', name: 'Fallback 3' },
+  ];
+
+  for (const { selector, name, getAnchor } of selectors) {
+    console.log(`[LinkedIn Scraper] Trying selector: ${name} (${selector})`);
+    let el = document.querySelector(selector);
+
+    if (el) {
+      console.log(`[LinkedIn Scraper] Element found:`, el);
+
+      // If we need to get anchor from inside the element
+      if (getAnchor) {
+        const anchor = el.querySelector('a');
+        if (anchor) {
+          el = anchor;
+          console.log(`[LinkedIn Scraper] Found anchor inside:`, anchor);
+        }
+      }
+
+      let companyName = (el.innerText || el.textContent || '').trim();
+      console.log(`[LinkedIn Scraper] Raw text: "${companyName}"`);
+
+      // Clean up the text
+      companyName = companyName
+        .replace(/\s*·\s*Follow\s*/gi, '')
+        .replace(/\s*Follow\s*/gi, '')
+        .replace(/\n/g, ' ')
+        .trim();
+
+      console.log(`[LinkedIn Scraper] Cleaned text: "${companyName}"`);
+
+      if (companyName && companyName.length > 0 && companyName.length < 100) {
+        console.log(`[LinkedIn Scraper] ✓ SUCCESS! Found company name: "${companyName}" using ${name}`);
+        return companyName;
+      }
+    } else {
+      console.log(`[LinkedIn Scraper] Element not found for: ${name}`);
+    }
+  }
+
+  console.log('[LinkedIn Scraper] ❌ FAILED - Could not find company name with any selector');
+  console.log('[LinkedIn Scraper] Available elements with "company" in class:',
+    Array.from(document.querySelectorAll('[class*="company"]')).map(el => ({
+      tag: el.tagName,
+      class: el.className,
+      text: (el.innerText || el.textContent || '').substring(0, 50)
+    }))
+  );
+
+  return null;
+};
+
+// Wait for company name element to appear
+const waitForCompanyName = (timeout = 3000) => {
+  console.log('[LinkedIn Scraper] waitForCompanyName() called, timeout:', timeout);
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    let attemptCount = 0;
+
+    const checkCompanyName = () => {
+      attemptCount++;
+      console.log(`[LinkedIn Scraper] Attempt ${attemptCount} to extract company name...`);
+      const companyName = extractCompanyName();
+
+      if (companyName) {
+        console.log(`[LinkedIn Scraper] ✓ Company name found after ${attemptCount} attempts:`, companyName);
+        resolve(companyName);
+        return;
+      }
+
+      // Keep trying until timeout
+      const elapsed = Date.now() - startTime;
+      if (elapsed < timeout) {
+        console.log(`[LinkedIn Scraper] Retrying in 200ms... (${elapsed}ms elapsed)`);
+        setTimeout(checkCompanyName, 200);
+      } else {
+        console.log(`[LinkedIn Scraper] ⏱ Timeout after ${attemptCount} attempts (${elapsed}ms)`);
+        resolve(null);
+      }
+    };
+
+    checkCompanyName();
+  });
+};
+
 // Extract job details from the page
-const extractJobDetails = () => {
+const extractJobDetails = async () => {
+  console.log('[LinkedIn Scraper] extractJobDetails() called');
   const jobDetailsEl = document.querySelector('#job-details > div');
-  
+
   if (!jobDetailsEl) {
+    console.log('[LinkedIn Scraper] No job details element found');
     return null;
   }
 
   const text = jobDetailsEl.innerText || jobDetailsEl.textContent || '';
   const cleaned = normalizeText(text);
-  
+
   // Only send if the content has changed
   if (cleaned && cleaned !== lastJobText) {
+    console.log('[LinkedIn Scraper] New job text detected, length:', cleaned.length);
     lastJobText = cleaned;
-    return cleaned;
+
+    // Wait for company name to load (with timeout)
+    console.log('[LinkedIn Scraper] Starting company name extraction...');
+    const companyName = await waitForCompanyName(3000);
+    console.log('[LinkedIn Scraper] Final company name:', companyName);
+
+    return {
+      text: cleaned,
+      companyName: companyName
+    };
   }
-  
+
+  console.log('[LinkedIn Scraper] Job text unchanged, skipping');
   return null;
 };
 
 // Send job data to the side panel
-const sendJobDataToSidePanel = (jobText) => {
+const sendJobDataToSidePanel = (jobData) => {
   chrome.runtime.sendMessage({
     type: 'JOB_DATA_UPDATED',
     data: {
-      text: jobText,
+      text: jobData.text,
+      companyName: jobData.companyName,
       url: window.location.href,
       timestamp: Date.now()
     }
@@ -54,11 +168,12 @@ const sendJobDataToSidePanel = (jobText) => {
 };
 
 // Check for job details and send if found
-const checkAndSendJobDetails = () => {
-  const jobText = extractJobDetails();
-  if (jobText) {
+const checkAndSendJobDetails = async () => {
+  const jobData = await extractJobDetails();
+  if (jobData) {
     console.log('Job details found, sending to side panel');
-    sendJobDataToSidePanel(jobText);
+    console.log('Company name in job data:', jobData.companyName);
+    sendJobDataToSidePanel(jobData);
   }
 };
 
@@ -121,15 +236,19 @@ if (document.readyState === 'loading') {
 // Listen for messages from side panel (e.g., requesting current job data)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'REQUEST_JOB_DATA') {
-    const jobText = extractJobDetails();
-    sendResponse({
-      success: true,
-      data: jobText ? {
-        text: jobText,
-        url: window.location.href,
-        timestamp: Date.now()
-      } : null
+    // Handle async extraction
+    extractJobDetails().then(jobData => {
+      sendResponse({
+        success: true,
+        data: jobData ? {
+          text: jobData.text,
+          companyName: jobData.companyName,
+          url: window.location.href,
+          timestamp: Date.now()
+        } : null
+      });
     });
+    return true; // Keep the message channel open for async response
   }
   return true;
 });

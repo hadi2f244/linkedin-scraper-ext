@@ -71,6 +71,9 @@
     let isSending = false;
     let isGeneratingCoverLetter = false;
 
+    // Initialize Copilot Auth
+    const copilotAuth = new CopilotAuth();
+
     const setError = (msg) => {
         statusEl.className = 'error';
         statusEl.textContent = msg;
@@ -720,17 +723,17 @@
 
         // Change button to "Stop ChatGPT"
         isSending = true;
-        sendBtn.textContent = 'Stop ChatGPT';
+        sendBtn.textContent = 'Stop AI';
         sendBtn.style.background = '#d32f2f';
 
         aiOutputEl.textContent = '';
-        aiStatusEl.textContent = 'Sending to ChatGPT...';
+        aiStatusEl.textContent = 'Sending to AI...';
 
         // Create new abort controller
         abortController = new AbortController();
 
         // Retrieve settings
-        const { OPENAI_API_KEY, API_ENDPOINT, AI_MODEL, USER_PROMPT } = await chrome.storage.local.get(['OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL', 'USER_PROMPT']);
+        const { AI_PROVIDER, OPENAI_API_KEY, API_ENDPOINT, AI_MODEL, USER_PROMPT } = await chrome.storage.local.get(['AI_PROVIDER', 'OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL', 'USER_PROMPT']);
 
         // If key/prompt not found — try to load prompt.txt as default
         let prompt = USER_PROMPT || '';
@@ -743,12 +746,6 @@
             } catch {}
         }
 
-        if (!OPENAI_API_KEY) {
-            aiStatusEl.textContent = 'No API key. Open options and enter the key.';
-            resetSendButton();
-            return;
-        }
-
         if (!prompt) {
             aiStatusEl.textContent = 'No prompt. Set a prompt in options or add prompt.txt.';
             resetSendButton();
@@ -758,37 +755,66 @@
         // Final prompt: append the job text at the end
         const fullPrompt = `${prompt.trim()}\n\n-----${currentJobText}`;
 
-        // Use custom endpoint if configured, otherwise use default
-        const apiUrl = API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
-        const aiModel = AI_MODEL || 'gpt-4o-mini';
-
-        console.log('Send to ChatGPT - API URL:', apiUrl);
-        console.log('Send to ChatGPT - AI Model:', aiModel);
+        const aiProvider = AI_PROVIDER || 'openai';
 
         try {
-            const resp = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: aiModel,
-                    messages: [
-                        { role: 'system', content: 'You are a summarizing assistant. Answer concisely, in a structured manner, and to the point.' },
-                        { role: 'user', content: fullPrompt }
-                    ],
-                    temperature: 0.2
-                }),
-                signal: abortController.signal
-            });
+            let msg = '';
 
-            const data = await resp.json();
-            if (!resp.ok) {
-                throw new Error(data?.error?.message || `HTTP ${resp.status}`);
+            if (aiProvider === 'copilot') {
+                // Use GitHub Copilot
+                aiStatusEl.textContent = 'Sending to GitHub Copilot...';
+                console.log('Using GitHub Copilot');
+
+                // Reset conversation for fresh context
+                copilotAuth.resetConversation();
+
+                // Send to Copilot
+                msg = await copilotAuth.chat(fullPrompt, {
+                    temperature: 0.2,
+                    stream: true,
+                    signal: abortController.signal
+                });
+
+            } else {
+                // Use OpenAI
+                if (!OPENAI_API_KEY) {
+                    aiStatusEl.textContent = 'No API key. Open options and enter the key.';
+                    resetSendButton();
+                    return;
+                }
+
+                aiStatusEl.textContent = 'Sending to OpenAI...';
+                const apiUrl = API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
+                const aiModel = AI_MODEL || 'gpt-4o-mini';
+
+                console.log('Send to OpenAI - API URL:', apiUrl);
+                console.log('Send to OpenAI - AI Model:', aiModel);
+
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: aiModel,
+                        messages: [
+                            { role: 'system', content: 'You are a summarizing assistant. Answer concisely, in a structured manner, and to the point.' },
+                            { role: 'user', content: fullPrompt }
+                        ],
+                        temperature: 0.2
+                    }),
+                    signal: abortController.signal
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) {
+                    throw new Error(data?.error?.message || `HTTP ${resp.status}`);
+                }
+
+                msg = data?.choices?.[0]?.message?.content?.trim() || '(empty response)';
             }
 
-            const msg = data?.choices?.[0]?.message?.content?.trim() || '(empty response)';
             aiStatusEl.textContent = 'Done ✓';
             aiOutputEl.innerHTML = msg.replace(/\n/g, '<br>');
 
@@ -800,7 +826,7 @@
             if (err.name === 'AbortError') {
                 aiStatusEl.textContent = 'Request cancelled.';
             } else {
-                aiStatusEl.textContent = 'Error while requesting ChatGPT: ' + err.message;
+                aiStatusEl.textContent = `Error: ${err.message}`;
             }
             resetSendButton();
         }
@@ -848,8 +874,9 @@
         }
 
         // Get resume from storage
-        const { RESUME_TEXT, OPENAI_API_KEY, API_ENDPOINT, AI_MODEL } = await chrome.storage.local.get(['RESUME_TEXT', 'OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL']);
+        const { AI_PROVIDER, RESUME_TEXT, OPENAI_API_KEY, API_ENDPOINT, AI_MODEL } = await chrome.storage.local.get(['AI_PROVIDER', 'RESUME_TEXT', 'OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL']);
 
+        console.log('Cover letter generation - AI_PROVIDER:', AI_PROVIDER);
         console.log('Cover letter generation - API_ENDPOINT:', API_ENDPOINT);
         console.log('Cover letter generation - AI_MODEL:', AI_MODEL);
         console.log('Cover letter generation - OPENAI_API_KEY:', OPENAI_API_KEY ? 'Present' : 'Missing');
@@ -861,7 +888,9 @@
             return;
         }
 
-        if (!OPENAI_API_KEY) {
+        const aiProvider = AI_PROVIDER || 'openai';
+
+        if (aiProvider === 'openai' && !OPENAI_API_KEY) {
             coverLetterStatus.textContent = 'No OpenAI API key configured. Please add it in options.';
             coverLetterStatus.style.color = '#c62828';
             return;
@@ -905,38 +934,56 @@ Please write a cover letter that:
 
 Write only the cover letter text, without any additional commentary or explanations.`;
 
-        // Use custom endpoint if configured, otherwise use default
-        const apiUrl = API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
-        const aiModel = AI_MODEL || 'gpt-4o-mini';
-
-        console.log('Cover letter generation - Using API URL:', apiUrl);
-        console.log('Cover letter generation - Using AI Model:', aiModel);
-
         try {
-            const resp = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: aiModel,
-                    messages: [
-                        { role: 'user', content: coverLetterPrompt }
-                    ],
+            let coverLetter = '';
+
+            if (aiProvider === 'copilot') {
+                // Use GitHub Copilot
+                coverLetterStatus.textContent = 'Generating with GitHub Copilot...';
+                console.log('Using GitHub Copilot for cover letter');
+
+                // Reset conversation for fresh context
+                copilotAuth.resetConversation();
+
+                coverLetter = await copilotAuth.chat(coverLetterPrompt, {
                     temperature: 0.7,
-                    max_tokens: 1000
-                }),
-                signal: coverLetterAbortController.signal
-            });
+                    stream: true,
+                    signal: coverLetterAbortController.signal
+                });
 
-            if (!resp.ok) {
-                const errorData = await resp.json().catch(() => ({}));
-                throw new Error(errorData.error?.message || `HTTP ${resp.status}`);
+            } else {
+                // Use OpenAI
+                const apiUrl = API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
+                const aiModel = AI_MODEL || 'gpt-4o-mini';
+
+                console.log('Cover letter generation - Using API URL:', apiUrl);
+                console.log('Cover letter generation - Using AI Model:', aiModel);
+
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: aiModel,
+                        messages: [
+                            { role: 'user', content: coverLetterPrompt }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    }),
+                    signal: coverLetterAbortController.signal
+                });
+
+                if (!resp.ok) {
+                    const errorData = await resp.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `HTTP ${resp.status}`);
+                }
+
+                const data = await resp.json();
+                coverLetter = data?.choices?.[0]?.message?.content?.trim() || '(empty response)';
             }
-
-            const data = await resp.json();
-            const coverLetter = data?.choices?.[0]?.message?.content?.trim() || '(empty response)';
 
             coverLetterStatus.textContent = 'Cover letter generated ✓';
             coverLetterStatus.style.color = '#2e7d32';

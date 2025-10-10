@@ -1,4 +1,7 @@
 (async () => {
+    const aiProviderEl = document.getElementById('ai-provider');
+    const openaiSettingsEl = document.getElementById('openai-settings');
+    const copilotSettingsEl = document.getElementById('copilot-settings');
     const keyEl = document.getElementById('key');
     const apiEndpointEl = document.getElementById('api-endpoint');
     const aiModelEl = document.getElementById('ai-model');
@@ -11,6 +14,12 @@
     const csvFileEl = document.getElementById('csv-file');
     const csvStatusEl = document.getElementById('csv-status');
     const statusEl = document.getElementById('status');
+    const copilotAuthBtn = document.getElementById('copilot-auth-btn');
+    const copilotLogoutBtn = document.getElementById('copilot-logout-btn');
+    const copilotStatusText = document.getElementById('copilot-status-text');
+
+    // Initialize Copilot Auth
+    const copilotAuth = new CopilotAuth();
 
     // Configure PDF.js worker - use local file
     if (typeof pdfjsLib !== 'undefined') {
@@ -117,8 +126,95 @@
         });
     };
 
+    // Toggle AI provider settings visibility
+    const toggleAIProviderSettings = () => {
+        const provider = aiProviderEl.value;
+        if (provider === 'openai') {
+            openaiSettingsEl.style.display = 'block';
+            copilotSettingsEl.style.display = 'none';
+        } else if (provider === 'copilot') {
+            openaiSettingsEl.style.display = 'none';
+            copilotSettingsEl.style.display = 'block';
+        }
+    };
+
+    // Update Copilot authentication status
+    const updateCopilotStatus = async () => {
+        try {
+            const accessToken = await copilotAuth.loadAccessToken();
+            if (accessToken) {
+                const result = await chrome.storage.local.get(['COPILOT_TOKEN_DATE']);
+                const tokenDate = result.COPILOT_TOKEN_DATE ? new Date(result.COPILOT_TOKEN_DATE).toLocaleDateString() : 'Unknown';
+                copilotStatusText.textContent = `✓ Authenticated (since ${tokenDate})`;
+                copilotStatusText.style.color = '#2e7d32';
+                copilotAuthBtn.style.display = 'none';
+                copilotLogoutBtn.style.display = 'inline-block';
+            } else {
+                copilotStatusText.textContent = 'Not authenticated';
+                copilotStatusText.style.color = '#666';
+                copilotAuthBtn.style.display = 'inline-block';
+                copilotLogoutBtn.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error checking Copilot status:', error);
+            copilotStatusText.textContent = 'Error checking status';
+            copilotStatusText.style.color = '#c62828';
+        }
+    };
+
+    // Handle Copilot authentication
+    copilotAuthBtn.onclick = async () => {
+        try {
+            copilotAuthBtn.disabled = true;
+            copilotStatusText.textContent = 'Initiating authentication...';
+            copilotStatusText.style.color = '#0073b1';
+
+            // Initiate device flow
+            const deviceFlow = await copilotAuth.initiateDeviceFlow();
+
+            // Open GitHub device authorization page
+            window.open(deviceFlow.verificationUri, '_blank');
+
+            // Show user code in a popup
+            const userCodeMessage = `Please enter this code on GitHub:\n\n${deviceFlow.userCode}\n\nThe page should open automatically. If not, visit:\n${deviceFlow.verificationUri}`;
+            alert(userCodeMessage);
+
+            copilotStatusText.textContent = `Waiting for authorization... (Code: ${deviceFlow.userCode})`;
+
+            // Poll for access token
+            const accessToken = await copilotAuth.pollForAccessToken(deviceFlow.deviceCode, deviceFlow.interval);
+
+            // Save access token
+            await copilotAuth.saveAccessToken(accessToken);
+
+            copilotStatusText.textContent = '✓ Authentication successful!';
+            copilotStatusText.style.color = '#2e7d32';
+
+            // Update UI
+            await updateCopilotStatus();
+
+        } catch (error) {
+            console.error('Copilot authentication error:', error);
+            copilotStatusText.textContent = `Error: ${error.message}`;
+            copilotStatusText.style.color = '#c62828';
+            copilotAuthBtn.disabled = false;
+        }
+    };
+
+    // Handle Copilot logout
+    copilotLogoutBtn.onclick = async () => {
+        if (confirm('Are you sure you want to logout from GitHub Copilot?')) {
+            await copilotAuth.clearAuth();
+            await updateCopilotStatus();
+        }
+    };
+
+    // AI provider change handler
+    aiProviderEl.addEventListener('change', toggleAIProviderSettings);
+
     // Load settings
     const settings = await chrome.storage.local.get([
+        'AI_PROVIDER',
         'OPENAI_API_KEY',
         'API_ENDPOINT',
         'AI_MODEL',
@@ -130,6 +226,14 @@
         'RESUME_FILENAME',
         'RESUME_UPLOAD_DATE'
     ]);
+
+    // Set AI provider
+    if (settings.AI_PROVIDER) {
+        aiProviderEl.value = settings.AI_PROVIDER;
+    } else {
+        aiProviderEl.value = 'openai'; // Default to OpenAI
+    }
+    toggleAIProviderSettings();
 
     if (settings.OPENAI_API_KEY) {
         keyEl.value = settings.OPENAI_API_KEY;
@@ -317,6 +421,7 @@
 
     document.getElementById('save').onclick = async () => {
         const settingsToSave = {
+            AI_PROVIDER: aiProviderEl.value,
             OPENAI_API_KEY: keyEl.value.trim(),
             API_ENDPOINT: apiEndpointEl.value.trim(),
             AI_MODEL: aiModelEl.value.trim() || 'gpt-4o-mini',
@@ -335,4 +440,7 @@
         statusEl.textContent = 'Saved.';
         setTimeout(() => statusEl.textContent = '', 1500);
     };
+
+    // Initialize Copilot status on load
+    await updateCopilotStatus();
 })();

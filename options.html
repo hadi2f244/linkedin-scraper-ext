@@ -14,16 +14,50 @@
 <body>
 <h1>Settings</h1>
 
-<label>OpenAI API Key</label>
-<input id="key" type="password" placeholder="sk-..." />
+<label>AI Provider</label>
+<select id="ai-provider" style="width: 640px; max-width: 100%; padding: 6px; margin-bottom: 8px;">
+    <option value="openai">OpenAI (Custom API Key)</option>
+    <option value="copilot">GitHub Copilot (Free - Requires Subscription)</option>
+    <option value="groq">Groq (Free Alternative - Recommended)</option>
+    <option value="huggingface">Hugging Face (Free Alternative)</option>
+</select>
+<p class="muted">Choose your AI provider. Groq and Hugging Face offer free tiers that work globally.</p>
 
-<label>API Endpoint (Optional)</label>
-<input id="api-endpoint" type="text" placeholder="https://chats.qgpt.ir/api/chat/completions" style="width: 640px; max-width: 100%;" />
-<p class="muted">Leave empty to use default OpenAI endpoint (https://api.openai.com/v1/chat/completions). Use custom endpoint for proxies or alternative providers.</p>
+<!-- OpenAI Settings (shown when OpenAI is selected) -->
+<div id="openai-settings">
+    <label>OpenAI API Key</label>
+    <input id="key" type="password" placeholder="sk-..." />
 
-<label>AI Model</label>
-<input id="ai-model" type="text" placeholder="gpt-4o-mini" style="width: 640px; max-width: 100%;" />
-<p class="muted">Specify the AI model to use. Common options: gpt-4o-mini, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, gpt-4.1 (for custom endpoints). Default: gpt-4o-mini</p>
+    <label>API Endpoint (Optional)</label>
+    <input id="api-endpoint" type="text" placeholder="https://chats.qgpt.ir/api/chat/completions" style="width: 640px; max-width: 100%;" />
+    <p class="muted">Leave empty to use default OpenAI endpoint (https://api.openai.com/v1/chat/completions). Use custom endpoint for proxies or alternative providers.</p>
+
+    <label>AI Model</label>
+    <input id="ai-model" type="text" placeholder="gpt-4o-mini" style="width: 640px; max-width: 100%;" />
+    <p class="muted">Specify the AI model to use. Common options: gpt-4o-mini, gpt-4o, gpt-4-turbo, gpt-3.5-turbo, gpt-4.1 (for custom endpoints). Default: gpt-4o-mini</p>
+</div>
+
+<!-- Copilot Settings (shown when Copilot is selected) -->
+<div id="copilot-settings" style="display: none;">
+    <div id="copilot-auth-status" style="padding: 12px; margin: 12px 0; border-radius: 4px; background: #f5f5f5;">
+        <p style="margin: 0 0 8px 0;"><strong>GitHub Copilot Authentication</strong></p>
+        <p id="copilot-status-text" class="muted" style="margin: 0 0 8px 0;">Not authenticated</p>
+        <button id="copilot-auth-btn" style="padding: 8px 16px; cursor: pointer;">Authenticate with GitHub</button>
+        <button id="copilot-logout-btn" style="padding: 8px 16px; cursor: pointer; display: none; margin-left: 8px; background: #d32f2f; color: white; border: none; border-radius: 4px;">Logout</button>
+    </div>
+
+    <div style="padding: 12px; background: #e3f2fd; border-radius: 4px; margin: 12px 0;">
+        <p style="margin: 0 0 8px 0;"><strong>📝 How to Authenticate:</strong></p>
+        <ol style="margin: 0; padding-left: 20px;">
+            <li>Click "Authenticate with GitHub" button above</li>
+            <li>You'll be redirected to <strong>https://github.com/login/device</strong></li>
+            <li>Enter the code shown in the popup</li>
+            <li>Authorize the application with your GitHub account</li>
+            <li>Make sure you have <strong>GitHub Copilot</strong> enabled on your account</li>
+        </ol>
+        <p style="margin: 8px 0 0 0;" class="muted"><strong>Note:</strong> You need an active GitHub Copilot subscription or access through GitHub Education/Sponsors.</p>
+    </div>
+</div>
 
 <label>Prompt</label>
 <textarea id="prompt"></textarea>
@@ -58,6 +92,7 @@
 </div>
 
 <script src="pdf.min.js"></script>
+<script src="copilot-auth.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

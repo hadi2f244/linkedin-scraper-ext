@@ -20,11 +20,18 @@
     }
   ],
   "permissions": ["sidePanel", "scripting", "activeTab", "storage", "tabs"],
-  "host_permissions": ["https://www.linkedin.com/*", "https://api.openai.com/*", "https://chats.qgpt.ir/*"],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://api.openai.com/*",
+    "https://chats.qgpt.ir/*",
+    "https://github.com/*",
+    "https://api.github.com/*",
+    "https://api.githubcopilot.com/*"
+  ],
   "options_page": "options.html",
   "web_accessible_resources": [
     {
-      "resources": ["pdf.min.js", "pdf.worker.min.js"],
+      "resources": ["pdf.min.js", "pdf.worker.min.js", "copilot-auth.js"],
       "matches": ["<all_urls>"]
     }
   ]

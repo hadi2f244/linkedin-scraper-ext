@@ -187,8 +187,22 @@
             // Save access token
             await copilotAuth.saveAccessToken(accessToken);
 
-            copilotStatusText.textContent = '✓ Authentication successful!';
-            copilotStatusText.style.color = '#2e7d32';
+            // Verify Copilot access by trying to get a Copilot token
+            copilotStatusText.textContent = 'Verifying Copilot access...';
+            try {
+                await copilotAuth.getCopilotToken(accessToken);
+                copilotStatusText.textContent = '✓ Authentication successful! Copilot access verified.';
+                copilotStatusText.style.color = '#2e7d32';
+            } catch (verifyError) {
+                // Authentication succeeded but Copilot access failed
+                copilotStatusText.innerHTML = `⚠️ Authenticated but Copilot not available.<br><small>${verifyError.message}</small>`;
+                copilotStatusText.style.color = '#f57c00'; // Orange warning color
+
+                // Clear the saved token since it won't work
+                await copilotAuth.clearAuth();
+                copilotAuthBtn.disabled = false;
+                return;
+            }
 
             // Update UI
             await updateCopilotStatus();

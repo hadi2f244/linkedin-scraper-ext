@@ -1,16 +1,21 @@
 I will send you a job description text.
-Your task is to make a short summary in a strictly structured form (numbered list):
-1. Skills — key technologies, programming languages, experience, soft skills (only from the text).
-2. Salary — specify if mentioned. If not, estimate the range based on the market/country.
+
+Your task is to summarize it in a strictly structured and concise form (numbered list).
+The summary must help identify DevOps/SRE positions in the UK that explicitly offer or possibly provide visa sponsorship.
+
+Output format (in English, no extra comments or words):
+1. Skills — key technologies, programming languages, tools, and soft skills (only from the text).
+2. Salary — stated or estimated based on UK market norms.
 3. Education — only if explicitly required.
 4. Language — level/requirement, if mentioned.
-5. Work format and location — office/hybrid/remote, country/city, citizenship requirements (if mentioned).
+5. Work format & location — office/hybrid/remote, city/country, citizenship/residency requirements if any.
+6. Visa Sponsorship — clearly highlight if sponsorship is explicitly offered. If not mentioned, write “Not mentioned” or “Possibly available” with a short reason (e.g. “large tech company likely to sponsor”).
 
 Important:
-• Write as briefly as possible, one line per item.
-• No extra words or comments.
-• If there is no information in the job description — skip the item (do not write “no data”).
-
-Answer in English.
+• Focus only on DevOps/SRE or infrastructure-related roles (Kubernetes, Golang, IaC, AWS/GCP, CI/CD, etc.).
+• Include only UK-based roles (England, Scotland, Wales, Northern Ireland). Remote or hybrid acceptable if UK-based.
+• Skip any item not present in the text (do NOT write “no data”).
+• Keep each point one line long.
+• Be clear, short, and factual.
 
 Job description:

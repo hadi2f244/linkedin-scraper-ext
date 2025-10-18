@@ -768,12 +768,25 @@
                 // Reset conversation for fresh context
                 copilotAuth.resetConversation();
 
-                // Send to Copilot
-                msg = await copilotAuth.chat(fullPrompt, {
-                    temperature: 0.2,
-                    stream: true,
-                    signal: abortController.signal
-                });
+                try {
+                    // Send to Copilot
+                    msg = await copilotAuth.chat(fullPrompt, {
+                        temperature: 0.2,
+                        stream: true,
+                        signal: abortController.signal
+                    });
+                } catch (copilotError) {
+                    // Check if it's a subscription/access error
+                    if (copilotError.message.includes('not enabled') ||
+                        copilotError.message.includes('Access denied') ||
+                        copilotError.message.includes('403')) {
+                        aiStatusEl.innerHTML = `GitHub Copilot Error: ${copilotError.message}<br><br>` +
+                            `<a href="options.html" target="_blank" style="color: #0073b1;">Open Options</a> to switch to OpenAI or Groq.`;
+                        resetSendButton();
+                        return;
+                    }
+                    throw copilotError; // Re-throw other errors
+                }
 
             } else {
                 // Use OpenAI
@@ -945,11 +958,25 @@ Write only the cover letter text, without any additional commentary or explanati
                 // Reset conversation for fresh context
                 copilotAuth.resetConversation();
 
-                coverLetter = await copilotAuth.chat(coverLetterPrompt, {
-                    temperature: 0.7,
-                    stream: true,
-                    signal: coverLetterAbortController.signal
-                });
+                try {
+                    coverLetter = await copilotAuth.chat(coverLetterPrompt, {
+                        temperature: 0.7,
+                        stream: true,
+                        signal: coverLetterAbortController.signal
+                    });
+                } catch (copilotError) {
+                    // Check if it's a subscription/access error
+                    if (copilotError.message.includes('not enabled') ||
+                        copilotError.message.includes('Access denied') ||
+                        copilotError.message.includes('403')) {
+                        coverLetterStatus.innerHTML = `GitHub Copilot Error: ${copilotError.message}<br><br>` +
+                            `<a href="options.html" target="_blank" style="color: #0073b1;">Open Options</a> to switch to OpenAI or Groq.`;
+                        coverLetterStatus.style.color = '#c62828';
+                        resetCoverLetterButton();
+                        return;
+                    }
+                    throw copilotError; // Re-throw other errors
+                }
 
             } else {
                 // Use OpenAI

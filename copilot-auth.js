@@ -152,7 +152,25 @@ class CopilotAuth {
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to get Copilot token: ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+
+                // Handle specific error cases
+                if (response.status === 403) {
+                    if (errorData.error_details?.notification_id === 'feature_flag_blocked') {
+                        throw new Error(
+                            'GitHub Copilot is not enabled for your account. ' +
+                            'Please subscribe to GitHub Copilot at https://github.com/features/copilot or ' +
+                            'switch to OpenAI/Groq in the extension options.'
+                        );
+                    }
+                    throw new Error(
+                        'Access denied to GitHub Copilot API. ' +
+                        'Make sure you have an active GitHub Copilot subscription. ' +
+                        'Visit https://github.com/settings/copilot to check your subscription status.'
+                    );
+                }
+
+                throw new Error(`Failed to get Copilot token: ${response.status} - ${errorData.message || 'Unknown error'}`);
             }
 
             const data = await response.json();

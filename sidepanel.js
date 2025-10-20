@@ -169,18 +169,37 @@
     // IndexedDB helper functions
     const openDatabase = () => {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('VisaSponsorDB', 1);
+            const request = indexedDB.open('VisaSponsorDB', 2); // Updated to version 2
 
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                if (!db.objectStoreNames.contains('companies')) {
-                    db.createObjectStore('companies', { keyPath: 'id', autoIncrement: true });
+                const oldVersion = event.oldVersion;
+
+                // Version 1: Original stores
+                if (oldVersion < 1) {
+                    if (!db.objectStoreNames.contains('companies')) {
+                        db.createObjectStore('companies', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains('metadata')) {
+                        db.createObjectStore('metadata', { keyPath: 'key' });
+                    }
                 }
-                if (!db.objectStoreNames.contains('metadata')) {
-                    db.createObjectStore('metadata', { keyPath: 'key' });
+
+                // Version 2: Add job cache and tracking stores
+                if (oldVersion < 2) {
+                    if (!db.objectStoreNames.contains('jobCache')) {
+                        const jobCacheStore = db.createObjectStore('jobCache', { keyPath: 'jobId' });
+                        jobCacheStore.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
+
+                    if (!db.objectStoreNames.contains('jobTracking')) {
+                        const jobTrackingStore = db.createObjectStore('jobTracking', { keyPath: 'jobId' });
+                        jobTrackingStore.createIndex('viewedAt', 'viewedAt', { unique: false });
+                        jobTrackingStore.createIndex('appliedAt', 'appliedAt', { unique: false });
+                    }
                 }
             };
         });

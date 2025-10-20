@@ -11,6 +11,9 @@
     const badKeywordsEl = document.getElementById('bad-keywords');
     const resumeFileEl = document.getElementById('resume-file');
     const resumeStatusEl = document.getElementById('resume-status');
+    const enableBadgeScannerEl = document.getElementById('enable-badge-scanner');
+    const enableVisaBadgeEl = document.getElementById('enable-visa-badge');
+    const badgeKeywordsEl = document.getElementById('badge-keywords');
     const csvFileEl = document.getElementById('csv-file');
     const csvStatusEl = document.getElementById('csv-status');
     const statusEl = document.getElementById('status');
@@ -51,18 +54,39 @@
     // IndexedDB helper functions
     const openDatabase = () => {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open('VisaSponsorDB', 1);
+            const request = indexedDB.open('VisaSponsorDB', 2); // Updated to version 2
 
             request.onerror = () => reject(request.error);
             request.onsuccess = () => resolve(request.result);
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                if (!db.objectStoreNames.contains('companies')) {
-                    db.createObjectStore('companies', { keyPath: 'id', autoIncrement: true });
+                const oldVersion = event.oldVersion;
+
+                // Version 1: Original stores
+                if (oldVersion < 1) {
+                    if (!db.objectStoreNames.contains('companies')) {
+                        db.createObjectStore('companies', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains('metadata')) {
+                        db.createObjectStore('metadata', { keyPath: 'key' });
+                    }
                 }
-                if (!db.objectStoreNames.contains('metadata')) {
-                    db.createObjectStore('metadata', { keyPath: 'key' });
+
+                // Version 2: Add job cache and tracking stores
+                if (oldVersion < 2) {
+                    // Job cache store: stores scan results for each job
+                    if (!db.objectStoreNames.contains('jobCache')) {
+                        const jobCacheStore = db.createObjectStore('jobCache', { keyPath: 'jobId' });
+                        jobCacheStore.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
+
+                    // Job tracking store: tracks viewed and applied jobs
+                    if (!db.objectStoreNames.contains('jobTracking')) {
+                        const jobTrackingStore = db.createObjectStore('jobTracking', { keyPath: 'jobId' });
+                        jobTrackingStore.createIndex('viewedAt', 'viewedAt', { unique: false });
+                        jobTrackingStore.createIndex('appliedAt', 'appliedAt', { unique: false });
+                    }
                 }
             };
         });
@@ -238,7 +262,10 @@
         'BAD_KEYWORDS',
         'RESUME_TEXT',
         'RESUME_FILENAME',
-        'RESUME_UPLOAD_DATE'
+        'RESUME_UPLOAD_DATE',
+        'ENABLE_BADGE_SCANNER',
+        'ENABLE_VISA_BADGE',
+        'BADGE_KEYWORDS'
     ]);
 
     // Set AI provider
@@ -286,6 +313,17 @@
     // Bad keywords field
     if (settings.BAD_KEYWORDS) {
         badKeywordsEl.value = settings.BAD_KEYWORDS;
+    }
+
+    // Badge scanner settings
+    enableBadgeScannerEl.checked = settings.ENABLE_BADGE_SCANNER || false;
+    enableVisaBadgeEl.checked = settings.ENABLE_VISA_BADGE !== false; // Default to true
+
+    if (settings.BADGE_KEYWORDS) {
+        badgeKeywordsEl.value = settings.BADGE_KEYWORDS;
+    } else {
+        // Set default badge keywords - all GREEN for easy visibility
+        badgeKeywordsEl.value = 'kubernetes|#4caf50\ndocker|#4caf50\npython|#4caf50\naws|#4caf50';
     }
 
     // Display resume status
@@ -442,7 +480,10 @@
             USER_PROMPT: promptEl.value,
             AUTO_SEND_CHATGPT: autoSendEl.checked,
             SEARCH_KEYWORDS: keywordsEl.value.trim(),
-            BAD_KEYWORDS: badKeywordsEl.value.trim()
+            BAD_KEYWORDS: badKeywordsEl.value.trim(),
+            ENABLE_BADGE_SCANNER: enableBadgeScannerEl.checked,
+            ENABLE_VISA_BADGE: enableVisaBadgeEl.checked,
+            BADGE_KEYWORDS: badgeKeywordsEl.value.trim()
         };
 
         console.log('Saving settings:', {

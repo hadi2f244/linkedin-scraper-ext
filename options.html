@@ -76,6 +76,25 @@
 <input id="bad-keywords" type="text" placeholder="e.g., Azure, relocation required, on-site only" style="width: 640px; max-width: 100%;" />
 <p class="muted">Enter keywords you want to avoid. Jobs containing these keywords will be flagged.</p>
 
+<h2 style="margin-top: 32px; border-top: 2px solid #e0e0e0; padding-top: 20px;">Job Listing Badge Scanner</h2>
+<p class="muted">Automatically scan job listings in the left panel and display badges for quick filtering.</p>
+
+<label style="margin-top: 16px;">
+    <input type="checkbox" id="enable-badge-scanner" />
+    Enable automatic badge scanning on job listings
+</label>
+<p class="muted" style="margin-left: 20px;">When enabled, the extension will automatically scan visible job listings and display badges based on your criteria.</p>
+
+<label style="margin-top: 16px;">
+    <input type="checkbox" id="enable-visa-badge" />
+    Show visa sponsorship badge
+</label>
+<p class="muted" style="margin-left: 20px;">Display a badge on jobs that mention visa sponsorship in their description.</p>
+
+<label style="margin-top: 16px;">Badge Keywords (one per line, format: keyword|color)</label>
+<textarea id="badge-keywords" placeholder="kubernetes|#4caf50&#10;docker|#2196f3&#10;python|#ff9800&#10;aws|#f44336" style="height: 120px; width: 640px; max-width: 100%;"></textarea>
+<p class="muted">Enter keywords to display as badges. Format: keyword|hexcolor (e.g., kubernetes|#4caf50). One per line. Leave color empty to use default.</p>
+
 <label style="margin-top: 16px;">Resume / CV (PDF)</label>
 <input id="resume-file" type="file" accept=".pdf" style="margin-bottom: 8px;" />
 <p class="muted">Upload your resume in PDF format. This will be used to generate tailored cover letters.</p>

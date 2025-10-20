@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Extension Cache</title>
+</head>
+<body>
+    <h1>Clear LinkedIn Extension Cache</h1>
+    <button id="clearBtn">Clear All Job Caches</button>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('clearBtn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Clearing caches...';
+            
+            try {
+                const response = await chrome.runtime.sendMessage(
+                    'fbkkgfkdgpaapdiakppplonicljfiojd', // Extension ID
+                    { type: 'CLEAR_ALL_JOB_CACHES' }
+                );
+                
+                if (response && response.success) {
+                    resultDiv.innerHTML = '<p style="color: green;">✓ Successfully cleared all job caches!</p>';
+                } else {
+                    resultDiv.innerHTML = '<p style="color: red;">✗ Failed to clear caches</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
+

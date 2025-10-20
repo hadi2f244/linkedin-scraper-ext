@@ -240,8 +240,14 @@ const waitForCompanyName = (timeout = 3000) => {
 const extractJobDetails = async () => {
   console.log('[LinkedIn Scraper] extractJobDetails() called');
 
-  // Based on actual HTML: .jobs-search__job-details--wrapper contains the job description
-  const jobDetailsEl = document.querySelector('.jobs-search__job-details--wrapper') ||
+  // IMPORTANT: Use specific job description selectors to avoid including badge elements
+  // The .jobs-search__job-details--wrapper contains badges, which creates false positives
+  // Use the actual job description container instead
+  const jobDetailsEl = document.querySelector('.jobs-description__content') ||
+                       document.querySelector('.jobs-box__html-content') ||
+                       document.querySelector('.jobs-description') ||
+                       document.querySelector('article.jobs-description__container') ||
+                       document.querySelector('.jobs-search__job-details--wrapper') ||
                        document.querySelector('#job-details > div');
 
   if (!jobDetailsEl) {

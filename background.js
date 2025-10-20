@@ -342,6 +342,33 @@ const clearAllTracking = async () => {
   }
 };
 
+// Clear all job caches (for debugging/testing)
+const clearAllJobCaches = async () => {
+  try {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['jobCache'], 'readwrite');
+      const store = transaction.objectStore('jobCache');
+      const request = store.clear();
+
+      request.onsuccess = () => {
+        console.log('[Background] ✓ Cleared all job caches');
+        db.close();
+        resolve(true);
+      };
+
+      request.onerror = () => {
+        console.error('[Background] Error clearing all caches:', request.error);
+        db.close();
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.error('[Background] Error clearing all caches:', error);
+    return false;
+  }
+};
+
 // Clear expired cache on startup
 clearExpiredCache().then(count => {
   if (count > 0) {
@@ -415,6 +442,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   } else if (message.type === 'CLEAR_ALL_TRACKING') {
     clearAllTracking()
+      .then(() => {
+        sendResponse({ success: true });
+      })
+      .catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  } else if (message.type === 'CLEAR_ALL_JOB_CACHES') {
+    clearAllJobCaches()
       .then(() => {
         sendResponse({ success: true });
       })

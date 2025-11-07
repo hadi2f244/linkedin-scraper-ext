@@ -334,9 +334,15 @@ const extractJobDetails = async () => {
 const sendJobDataToSidePanel = (jobData) => {
   // Check if extension context is still valid
   if (!chrome.runtime?.id) {
-    console.log('[LinkedIn Scraper] Extension context invalidated, skipping message');
+    console.error('[LinkedIn Scraper] Extension context invalidated, skipping message');
     return;
   }
+
+  console.log('[LinkedIn Scraper] Sending job data to side panel:', {
+    companyName: jobData.companyName,
+    jobTitle: jobData.jobTitle,
+    url: window.location.href
+  });
 
   chrome.runtime.sendMessage({
     type: 'JOB_DATA_UPDATED',
@@ -347,13 +353,15 @@ const sendJobDataToSidePanel = (jobData) => {
       url: window.location.href,
       timestamp: Date.now()
     }
+  }).then(() => {
+    console.log('[LinkedIn Scraper] Message sent successfully');
   }).catch((err) => {
     // Side panel might not be open yet, that's okay
     // Also catch "Extension context invalidated" errors
     if (err.message.includes('Extension context invalidated')) {
-      console.log('[LinkedIn Scraper] Extension was reloaded, please refresh the page');
+      console.error('[LinkedIn Scraper] Extension was reloaded, please refresh the page');
     } else {
-      console.log('Could not send to side panel:', err.message);
+      console.warn('[LinkedIn Scraper] Could not send to side panel:', err.message);
     }
   });
 };
@@ -476,9 +484,17 @@ if (document.readyState === 'loading') {
 
 // Listen for messages from side panel (e.g., requesting current job data)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('[LinkedIn Scraper] Received message:', message.type);
+
   if (message.type === 'REQUEST_JOB_DATA') {
+    console.log('[LinkedIn Scraper] Side panel requested job data');
     // Handle async extraction
     extractJobDetails().then(jobData => {
+      console.log('[LinkedIn Scraper] Extracted job data for REQUEST_JOB_DATA:', jobData ? {
+        companyName: jobData.companyName,
+        jobTitle: jobData.jobTitle
+      } : null);
+
       sendResponse({
         success: true,
         data: jobData ? {

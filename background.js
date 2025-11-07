@@ -486,9 +486,16 @@ clearExpiredCache().then(count => {
 // Listen for messages from content script and forward to side panel
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'JOB_DATA_UPDATED') {
-    // Forward the message to all side panels
-    // The side panel will receive this via chrome.runtime.onMessage
-    console.log('Job data updated, forwarding to side panel');
+    // Store the job data in chrome.storage so the side panel can retrieve it
+    console.log('[Background] Job data updated, storing in chrome.storage');
+    chrome.storage.local.set({
+      LAST_JOB_DATA: message.data,
+      LAST_JOB_DATA_TIMESTAMP: Date.now()
+    }).then(() => {
+      console.log('[Background] Job data stored successfully');
+    }).catch(err => {
+      console.error('[Background] Failed to store job data:', err);
+    });
   } else if (message.type === 'SEARCH_VISA_SPONSOR') {
     // Handle visa sponsorship search from content script
     console.log('[Background] Searching for company:', message.companyName);

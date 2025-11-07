@@ -1,4 +1,22 @@
 (async () => {
+    // Tab switching logic
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTab = btn.dataset.tab;
+
+            // Remove active class from all tabs and contents
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            // Add active class to clicked tab and corresponding content
+            btn.classList.add('active');
+            document.getElementById(`tab-${targetTab}`).classList.add('active');
+        });
+    });
+
     const aiProviderEl = document.getElementById('ai-provider');
     const openaiSettingsEl = document.getElementById('openai-settings');
     const copilotSettingsEl = document.getElementById('copilot-settings');
@@ -21,6 +39,8 @@
     const copilotLogoutBtn = document.getElementById('copilot-logout-btn');
     const copilotStatusText = document.getElementById('copilot-status-text');
     const coverLetterPromptEl = document.getElementById('cover-letter-prompt');
+    const addQuestionBtn = document.getElementById('add-question-btn');
+    const questionsTbody = document.getElementById('questions-tbody');
 
     // Initialize Copilot Auth
     const copilotAuth = new CopilotAuth();
@@ -51,6 +71,53 @@
 
         return fullText.trim();
     };
+
+    // Question table management
+    let questions = [];
+
+    const loadQuestionsTable = () => {
+        questionsTbody.innerHTML = '';
+
+        questions.forEach((q, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="text" value="${q.question.replace(/"/g, '&quot;')}" data-index="${index}" data-field="question" /></td>
+                <td><textarea data-index="${index}" data-field="prompt">${q.prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea></td>
+                <td>
+                    <button class="btn btn-danger btn-small delete-question-btn" data-index="${index}">🗑️ Delete</button>
+                </td>
+            `;
+            questionsTbody.appendChild(row);
+        });
+
+        // Add event listeners for inputs
+        questionsTbody.querySelectorAll('input, textarea').forEach(el => {
+            el.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const field = e.target.dataset.field;
+                questions[index][field] = e.target.value;
+            });
+        });
+
+        // Add event listeners for delete buttons
+        questionsTbody.querySelectorAll('.delete-question-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                questions.splice(index, 1);
+                loadQuestionsTable();
+            });
+        });
+    };
+
+    const addQuestion = () => {
+        questions.push({
+            question: 'New Question',
+            prompt: 'Enter your AI prompt here. Use {job_title}, {company_name}, {job_description}, and {resume} as variables.'
+        });
+        loadQuestionsTable();
+    };
+
+    addQuestionBtn.addEventListener('click', addQuestion);
 
     // IndexedDB helper functions
     const openDatabase = () => {
@@ -267,7 +334,8 @@
         'ENABLE_BADGE_SCANNER',
         'ENABLE_VISA_BADGE',
         'BADGE_KEYWORDS',
-        'COVER_LETTER_PROMPT'
+        'COVER_LETTER_PROMPT',
+        'APPLICATION_QUESTIONS'
     ]);
 
     // Set AI provider
@@ -355,6 +423,31 @@ Please write a cover letter that:
 
 Write only the cover letter text, without any additional commentary or explanations.`;
     }
+
+    // Application questions - load into table
+    if (settings.APPLICATION_QUESTIONS) {
+        const questionLines = settings.APPLICATION_QUESTIONS.split('\n').filter(line => line.trim() && line.includes('|'));
+        questions = questionLines.map(line => {
+            const [question, prompt] = line.split('|').map(s => s.trim());
+            return { question, prompt };
+        });
+    } else {
+        // Set default application questions with good prompts
+        questions = [
+            { question: 'Why do you want to work here?', prompt: 'Based on the job description for {job_title} at {company_name} and my resume, explain why I\'m genuinely interested in this role and company. Be specific about what excites me about the company\'s mission, products, or culture. Keep it concise (2-3 sentences).' },
+            { question: 'What are your salary expectations?', prompt: 'Based on the job title "{job_title}" and my experience level shown in my resume, suggest a reasonable salary range for this position in the UK market. Be professional and data-driven.' },
+            { question: 'What are your strengths?', prompt: 'Based on my resume and the requirements in the job description for {job_title}, identify my top 3-4 strengths that are most relevant to this role. Provide specific examples from my experience.' },
+            { question: 'What are your weaknesses?', prompt: 'Provide 1-2 honest but professional weaknesses that won\'t disqualify me for {job_title}. Frame them as areas I\'m actively working to improve, with specific steps I\'m taking.' },
+            { question: 'Why should we hire you?', prompt: 'Based on my resume and the job description for {job_title} at {company_name}, create a compelling 2-3 sentence pitch explaining why I\'m the ideal candidate. Focus on unique value I bring.' },
+            { question: 'Where do you see yourself in 5 years?', prompt: 'Based on the career path for {job_title} and my background, describe realistic career goals that align with this role and show ambition without seeming like I\'ll leave quickly.' },
+            { question: 'Do you have experience with [specific technology]?', prompt: 'Based on my resume, honestly state whether I have experience with the specific technology mentioned in the job description. If yes, provide brief details. If no, mention related experience or willingness to learn.' },
+            { question: 'Are you authorized to work in the UK?', prompt: 'Answer honestly based on my situation. If I need visa sponsorship, mention it professionally and express willingness to work through the process.' },
+            { question: 'What is your notice period?', prompt: 'Provide a professional answer about my current notice period. If unemployed, state I\'m available immediately. If employed, mention standard notice period (typically 2-4 weeks or as per contract).' },
+            { question: 'Tell me about a challenging project you worked on.', prompt: 'Based on my resume, describe a challenging technical project I worked on, the obstacles I faced, how I overcame them, and the results. Keep it relevant to {job_title}.' }
+        ];
+    }
+
+    loadQuestionsTable();
 
     // Display resume status
     if (settings.RESUME_TEXT && settings.RESUME_FILENAME) {
@@ -514,7 +607,8 @@ Write only the cover letter text, without any additional commentary or explanati
             ENABLE_BADGE_SCANNER: enableBadgeScannerEl.checked,
             ENABLE_VISA_BADGE: enableVisaBadgeEl.checked,
             BADGE_KEYWORDS: badgeKeywordsEl.value.trim(),
-            COVER_LETTER_PROMPT: coverLetterPromptEl.value.trim()
+            COVER_LETTER_PROMPT: coverLetterPromptEl.value.trim(),
+            APPLICATION_QUESTIONS: questions.map(q => `${q.question} | ${q.prompt}`).join('\n')
         };
 
         console.log('Saving settings:', {

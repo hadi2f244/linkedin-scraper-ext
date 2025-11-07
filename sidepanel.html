@@ -12,30 +12,40 @@
         <div id="status">Waiting for job data...</div>
     </div>
 
-    <div id="content"></div>
-
-    <div id="raw-text-container" class="raw-text-container collapsed">
-        <div id="raw-text-preview" class="raw-text-preview"></div>
-        <button id="read-more-btn" class="read-more-btn">Read more</button>
-        <div id="raw-text-full" class="raw-text-full"></div>
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <button class="tab-btn active" data-tab="job-details">📋 Job Details</button>
+        <button class="tab-btn" data-tab="cover-letter">📄 Cover Letter</button>
+        <button class="tab-btn" data-tab="qa">❓ Q&A</button>
     </div>
 
-    <div class="button-group">
-        <button id="send" disabled>Send to ChatGPT</button>
-        <button id="generate-cover-letter" disabled>Generate Cover Letter</button>
-        <button id="refresh">Refresh Job Data</button>
-    </div>
+    <!-- Tab: Job Details -->
+    <div class="tab-content active" id="tab-job-details">
+        <div id="content"></div>
 
-    <hr/>
-    <div id="ai-status" class="muted" style="margin-top:6px"></div>
-    <div id="ai-output" style="margin-top:6px; font-size:13px; line-height:1.35;"></div>
-
-    <div id="cover-letter-container" class="cover-letter-container" style="display: none;">
-        <div class="cover-letter-header">
-            <h3>📄 Cover Letter</h3>
-            <button id="toggle-cover-letter" class="toggle-btn">Show</button>
+        <div id="raw-text-container" class="raw-text-container collapsed">
+            <div id="raw-text-preview" class="raw-text-preview"></div>
+            <button id="read-more-btn" class="read-more-btn">Read more</button>
+            <div id="raw-text-full" class="raw-text-full"></div>
         </div>
-        <div id="cover-letter-content" class="cover-letter-content" style="display: none;">
+
+        <div class="button-group">
+            <button id="send" disabled>Send to ChatGPT</button>
+            <button id="refresh">Refresh Job Data</button>
+        </div>
+
+        <hr/>
+        <div id="ai-status" class="muted" style="margin-top:6px"></div>
+        <div id="ai-output" style="margin-top:6px; font-size:13px; line-height:1.35;"></div>
+    </div>
+
+    <!-- Tab: Cover Letter -->
+    <div class="tab-content" id="tab-cover-letter">
+        <div class="button-group">
+            <button id="generate-cover-letter" disabled>Generate Cover Letter</button>
+        </div>
+
+        <div id="cover-letter-container" class="cover-letter-container" style="display: none;">
             <div id="cover-letter-status" class="muted" style="margin-bottom: 8px;">
                 <span id="cover-letter-status-text"></span>
                 <span id="editable-indicator" class="editable-indicator" style="display: none;">✏️ Editable</span>
@@ -45,6 +55,28 @@
                 <button id="copy-cover-letter" class="copy-btn" style="display: none;">📋 Copy to Clipboard</button>
                 <button id="save-pdf-cover-letter" class="copy-btn" style="display: none;">💾 Save as PDF</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Tab: Q&A -->
+    <div class="tab-content" id="tab-qa">
+        <div style="margin-bottom: 16px;">
+            <label for="question-select" style="display: block; margin-bottom: 8px; font-weight: 600;">Select a Question:</label>
+            <select id="question-select" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+                <option value="">-- Select a question --</option>
+            </select>
+        </div>
+
+        <div id="qa-status" class="muted" style="margin-bottom: 8px;">
+            <span id="qa-status-text"></span>
+        </div>
+        <div id="qa-answer" class="qa-answer"></div>
+
+        <div class="custom-question-section" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
+            <label for="custom-question" style="display: block; margin-bottom: 8px; font-weight: 600;">Ask a Custom Question:</label>
+            <textarea id="custom-question" placeholder="e.g., What are the key skills required for this role?" style="width: 100%; min-height: 60px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 13px;"></textarea>
+            <button id="ask-custom-question" class="copy-btn" style="margin-top: 8px;">🤔 Get Answer</button>
+            <div id="custom-answer" class="custom-answer" style="margin-top: 12px; display: none;"></div>
         </div>
     </div>
 

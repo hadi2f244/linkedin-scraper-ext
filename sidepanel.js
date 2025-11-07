@@ -14,13 +14,38 @@
     const generateCoverLetterBtn = $('#generate-cover-letter');
     const refreshBtn = $('#refresh');
     const coverLetterContainer = $('#cover-letter-container');
-    const toggleCoverLetterBtn = $('#toggle-cover-letter');
-    const coverLetterContent = $('#cover-letter-content');
     const coverLetterStatus = $('#cover-letter-status-text');
     const editableIndicator = $('#editable-indicator');
     const coverLetterText = $('#cover-letter-text');
     const copyCoverLetterBtn = $('#copy-cover-letter');
     const savePdfCoverLetterBtn = $('#save-pdf-cover-letter');
+
+    // Tab elements
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    // Q&A elements
+    const questionSelect = $('#question-select');
+    const qaStatus = $('#qa-status-text');
+    const qaAnswer = $('#qa-answer');
+    const customQuestionInput = $('#custom-question');
+    const askCustomQuestionBtn = $('#ask-custom-question');
+    const customAnswer = $('#custom-answer');
+
+    // Tab switching logic
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTab = btn.dataset.tab;
+
+            // Remove active class from all tabs and contents
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            // Add active class to clicked tab and corresponding content
+            btn.classList.add('active');
+            document.getElementById(`tab-${targetTab}`).classList.add('active');
+        });
+    });
 
     const openOptionsLink = $('#open-options');
     if (openOptionsLink) {
@@ -39,17 +64,70 @@
         }
     };
 
-    // Handle toggle cover letter button
-    toggleCoverLetterBtn.onclick = () => {
-        const isHidden = coverLetterContent.style.display === 'none';
-        if (isHidden) {
-            coverLetterContent.style.display = 'block';
-            toggleCoverLetterBtn.textContent = 'Hide';
-        } else {
-            coverLetterContent.style.display = 'none';
-            toggleCoverLetterBtn.textContent = 'Show';
+    // Toggle cover letter button removed - cover letter is now in its own tab
+
+    // Load questions into dropdown
+    const loadQuestionsDropdown = async () => {
+        const { APPLICATION_QUESTIONS } = await chrome.storage.local.get(['APPLICATION_QUESTIONS']);
+
+        // Clear existing options except the first one
+        questionSelect.innerHTML = '<option value="">-- Select a question --</option>';
+
+        if (!APPLICATION_QUESTIONS || APPLICATION_QUESTIONS.trim() === '') {
+            return;
         }
+
+        // Parse questions
+        const questionLines = APPLICATION_QUESTIONS.split('\n').filter(line => line.trim() && line.includes('|'));
+        questionLines.forEach((line, index) => {
+            const [question] = line.split('|').map(s => s.trim());
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = question;
+            questionSelect.appendChild(option);
+        });
     };
+
+    // Handle question selection - populate custom question field with the prompt
+    questionSelect.addEventListener('change', async () => {
+        const selectedIndex = questionSelect.value;
+
+        if (!selectedIndex) {
+            // Clear custom question field when "-- Select a question --" is chosen
+            customQuestionInput.value = '';
+            qaAnswer.innerHTML = '';
+            qaStatus.textContent = '';
+            return;
+        }
+
+        // Get questions from storage
+        const { APPLICATION_QUESTIONS } = await chrome.storage.local.get(['APPLICATION_QUESTIONS']);
+
+        if (!APPLICATION_QUESTIONS) {
+            qaStatus.textContent = 'No questions configured';
+            qaStatus.style.color = '#c62828';
+            return;
+        }
+
+        // Parse questions
+        const questionLines = APPLICATION_QUESTIONS.split('\n').filter(line => line.trim() && line.includes('|'));
+        const [question, prompt] = questionLines[selectedIndex].split('|').map(s => s.trim());
+
+        // Populate the custom question field with the prompt
+        customQuestionInput.value = prompt;
+
+        // Clear any previous answer
+        qaAnswer.innerHTML = '';
+        customAnswer.innerHTML = '';
+        customAnswer.style.display = 'none';
+
+        // Show instruction to user
+        qaStatus.textContent = `Prompt loaded for: "${question}". Review and click "Get Answer" to generate.`;
+        qaStatus.style.color = '#0073b1';
+    });
+
+    // Load questions on startup
+    loadQuestionsDropdown();
 
     // Handle copy cover letter button
     copyCoverLetterBtn.onclick = async () => {
@@ -801,53 +879,93 @@
     // Request job data from the active LinkedIn tab
     const requestJobDataFromTab = async () => {
         try {
+            console.log('[Side Panel] Requesting job data from tab...');
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            
+
             if (!tab || !tab.url) {
+                console.error('[Side Panel] No active tab found');
                 setError('No active tab found.');
                 return;
             }
 
+            console.log('[Side Panel] Active tab URL:', tab.url);
             const url = new URL(tab.url);
             if (!url.hostname.includes('linkedin.com') || !url.pathname.startsWith('/jobs')) {
+                console.warn('[Side Panel] Not a LinkedIn jobs page');
                 setStatus('Please navigate to a LinkedIn job page.', true);
                 return;
             }
 
             setStatus('Fetching job data...');
+            console.log('[Side Panel] Sending REQUEST_JOB_DATA message to tab', tab.id);
 
             // Send message to content script to get current job data
-            chrome.tabs.sendMessage(tab.id, { type: 'REQUEST_JOB_DATA' }, (response) => {
+            chrome.tabs.sendMessage(tab.id, { type: 'REQUEST_JOB_DATA' }, async (response) => {
                 if (chrome.runtime.lastError) {
-                    setError('Could not connect to LinkedIn page. Try refreshing the page.');
+                    console.error('[Side Panel] Error sending message:', chrome.runtime.lastError.message);
+
+                    // Try to get the last job data from chrome.storage as fallback
+                    console.log('[Side Panel] Trying to get last job data from storage...');
+                    try {
+                        const { LAST_JOB_DATA, LAST_JOB_DATA_TIMESTAMP } = await chrome.storage.local.get(['LAST_JOB_DATA', 'LAST_JOB_DATA_TIMESTAMP']);
+
+                        if (LAST_JOB_DATA && LAST_JOB_DATA_TIMESTAMP) {
+                            const age = Date.now() - LAST_JOB_DATA_TIMESTAMP;
+                            console.log(`[Side Panel] Found cached job data (age: ${Math.round(age / 1000)}s)`);
+
+                            // Only use cached data if it's less than 30 seconds old and matches current URL
+                            if (age < 30000 && LAST_JOB_DATA.url === tab.url) {
+                                console.log('[Side Panel] Using cached job data');
+                                displayJobData(LAST_JOB_DATA);
+                                return;
+                            } else {
+                                console.log('[Side Panel] Cached data is too old or URL mismatch');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('[Side Panel] Failed to get cached job data:', err);
+                    }
+
+                    // Check if it's a "Could not establish connection" error (content script not loaded)
+                    if (chrome.runtime.lastError.message.includes('Could not establish connection')) {
+                        setError('Content script not loaded. Please refresh the LinkedIn page.');
+                    } else {
+                        setError('Could not connect to LinkedIn page. Try refreshing the page.');
+                    }
                     return;
                 }
 
+                console.log('[Side Panel] Received response:', response);
                 if (response && response.success && response.data) {
-                    console.log('Received job data from manual refresh:', response.data);
-                    console.log('Company name from manual refresh:', response.data.companyName);
+                    console.log('[Side Panel] Received job data from manual refresh:', response.data);
+                    console.log('[Side Panel] Company name from manual refresh:', response.data.companyName);
                     // Pass the entire data object, not just the text
                     displayJobData(response.data);
                 } else {
+                    console.warn('[Side Panel] No job data in response');
                     setStatus('No job details found. Click on a job listing.', true);
                 }
             });
 
         } catch (e) {
-            console.error(e);
+            console.error('[Side Panel] Error in requestJobDataFromTab:', e);
             setError('Error fetching job data: ' + e.message);
         }
     };
 
     // Listen for messages from content script (automatic updates)
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+        console.log('[Side Panel] Received message:', message.type);
+
         if (message.type === 'JOB_DATA_UPDATED' && message.data) {
-            console.log('Received job data update from content script');
-            console.log('Message data:', message.data);
-            console.log('Company name in message:', message.data.companyName);
+            console.log('[Side Panel] Received job data update from content script');
+            console.log('[Side Panel] Message data:', message.data);
+            console.log('[Side Panel] Company name in message:', message.data.companyName);
             // Pass the entire data object, not just the text
             displayJobData(message.data);
+            sendResponse({ received: true });
         }
+        return true; // Keep message channel open
     });
 
     // Function to send to ChatGPT
@@ -1046,10 +1164,8 @@
             return;
         }
 
-        // Show cover letter container and expand it
+        // Show cover letter container
         coverLetterContainer.style.display = 'block';
-        coverLetterContent.style.display = 'block';
-        toggleCoverLetterBtn.textContent = 'Hide';
 
         // Change button to "Stop Generation"
         isGeneratingCoverLetter = true;
@@ -1207,6 +1323,134 @@ Write only the cover letter text, without any additional commentary or explanati
         }
     };
 
+    // Custom question handler
+    askCustomQuestionBtn.onclick = async () => {
+        const customQuestionText = customQuestionInput.value.trim();
+
+        if (!customQuestionText) {
+            customAnswer.innerHTML = '<div style="color: #c62828;">Please enter a question.</div>';
+            customAnswer.style.display = 'block';
+            return;
+        }
+
+        if (!currentJobText) {
+            customAnswer.innerHTML = '<div style="color: #c62828;">No job data available.</div>';
+            customAnswer.style.display = 'block';
+            return;
+        }
+
+        // Get resume and API settings from storage
+        const { AI_PROVIDER, RESUME_TEXT, OPENAI_API_KEY, API_ENDPOINT, AI_MODEL } = await chrome.storage.local.get(['AI_PROVIDER', 'RESUME_TEXT', 'OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL']);
+
+        if (!RESUME_TEXT) {
+            customAnswer.innerHTML = '<div style="color: #c62828;">No resume uploaded. Please upload your resume in options.</div>';
+            customAnswer.style.display = 'block';
+            return;
+        }
+
+        const aiProvider = AI_PROVIDER || 'openai';
+
+        if (aiProvider === 'openai' && !OPENAI_API_KEY) {
+            customAnswer.innerHTML = '<div style="color: #c62828;">No OpenAI API key configured. Please add it in options.</div>';
+            customAnswer.style.display = 'block';
+            return;
+        }
+
+        // Show loading state
+        customAnswer.innerHTML = '<div style="color: #0073b1;">Generating answer...</div>';
+        customAnswer.style.display = 'block';
+        askCustomQuestionBtn.disabled = true;
+        askCustomQuestionBtn.textContent = 'Generating...';
+
+        try {
+            // Replace variables in the custom question/prompt
+            // Check if the input contains variable placeholders
+            const hasVariables = /{resume}|{job_title}|{company_name}|{job_description}/.test(customQuestionText);
+
+            let customPrompt;
+            if (hasVariables) {
+                // User provided a prompt template with variables - replace them
+                console.log('[Q&A] Custom prompt contains variables, replacing...');
+                customPrompt = customQuestionText
+                    .replace(/{resume}/g, RESUME_TEXT || '')
+                    .replace(/{job_title}/g, currentJobTitle || 'this position')
+                    .replace(/{company_name}/g, currentCompanyName || 'the company')
+                    .replace(/{job_description}/g, currentJobText || '');
+
+                console.log('[Q&A] Variables replaced. Prompt length:', customPrompt.length);
+            } else {
+                // User provided a simple question - create a structured prompt
+                console.log('[Q&A] Custom question is a simple question, creating structured prompt...');
+                customPrompt = `Based on the following resume and job description, answer this question: "${customQuestionText}"
+
+RESUME:
+${RESUME_TEXT}
+
+JOB TITLE: ${currentJobTitle || 'this position'}
+COMPANY: ${currentCompanyName || 'the company'}
+
+JOB DESCRIPTION:
+${currentJobText}
+
+Provide a clear, concise, and professional answer.`;
+            }
+
+            let answer = '';
+
+            if (aiProvider === 'copilot') {
+                // Use GitHub Copilot
+                copilotAuth.resetConversation();
+                answer = await copilotAuth.chat(customPrompt, {
+                    temperature: 0.7,
+                    stream: false
+                });
+            } else {
+                // Use OpenAI
+                const apiUrl = API_ENDPOINT || 'https://api.openai.com/v1/chat/completions';
+                const aiModel = AI_MODEL || 'gpt-4o-mini';
+
+                const resp = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: aiModel,
+                        messages: [
+                            { role: 'user', content: customPrompt }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 500
+                    })
+                });
+
+                if (!resp.ok) {
+                    const errorData = await resp.json().catch(() => ({}));
+                    throw new Error(errorData.error?.message || `HTTP ${resp.status}`);
+                }
+
+                const data = await resp.json();
+                answer = data?.choices?.[0]?.message?.content?.trim() || '(empty response)';
+            }
+
+            // Display answer
+            customAnswer.innerHTML = `
+                <div style="border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; background: #f9f9f9;">
+                    <div style="font-weight: 600; color: #0073b1; margin-bottom: 8px;">❓ ${customQuestionText}</div>
+                    <div style="color: #333; line-height: 1.5; white-space: pre-wrap;">${answer}</div>
+                </div>
+            `;
+
+        } catch (err) {
+            console.error('Custom question error:', err);
+            customAnswer.innerHTML = `<div style="color: #c62828;">Error: ${err.message}</div>`;
+        } finally {
+            askCustomQuestionBtn.disabled = false;
+            askCustomQuestionBtn.textContent = '🤔 Get Answer';
+        }
+    };
+
     // Generate cover letter button handler
     generateCoverLetterBtn.onclick = () => {
         if (isGeneratingCoverLetter && coverLetterAbortController) {
@@ -1219,9 +1463,48 @@ Write only the cover letter text, without any additional commentary or explanati
         }
     };
 
-    // Initialize: request job data from current tab
-    setStatus('Initializing...');
-    setTimeout(requestJobDataFromTab, 500);
+    // Initialize: request job data from current tab with retry logic
+    const initializeWithRetry = async (retryCount = 0, maxRetries = 3) => {
+        console.log(`[Side Panel] Initialization attempt ${retryCount + 1}/${maxRetries + 1}`);
+        setStatus('Initializing...');
+
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+            if (!tab || !tab.url) {
+                console.error('[Side Panel] No active tab found during initialization');
+                if (retryCount < maxRetries) {
+                    console.log('[Side Panel] Retrying in 1 second...');
+                    setTimeout(() => initializeWithRetry(retryCount + 1, maxRetries), 1000);
+                } else {
+                    setError('No active tab found.');
+                }
+                return;
+            }
+
+            const url = new URL(tab.url);
+            if (!url.hostname.includes('linkedin.com') || !url.pathname.startsWith('/jobs')) {
+                console.warn('[Side Panel] Not a LinkedIn jobs page');
+                setStatus('Please navigate to a LinkedIn job page.', true);
+                return;
+            }
+
+            console.log('[Side Panel] Requesting job data from tab during initialization...');
+            await requestJobDataFromTab();
+
+        } catch (e) {
+            console.error('[Side Panel] Error during initialization:', e);
+            if (retryCount < maxRetries) {
+                console.log('[Side Panel] Retrying in 1 second...');
+                setTimeout(() => initializeWithRetry(retryCount + 1, maxRetries), 1000);
+            } else {
+                setError('Failed to initialize: ' + e.message);
+            }
+        }
+    };
+
+    // Start initialization with delay to allow content script to load
+    setTimeout(() => initializeWithRetry(), 500);
 
     // Initialize cover letter button state
     updateCoverLetterButtonState();

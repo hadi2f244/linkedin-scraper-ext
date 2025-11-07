@@ -32,6 +32,16 @@
     const askCustomQuestionBtn = $('#ask-custom-question');
     const customAnswer = $('#custom-answer');
 
+    // Company Research elements
+    const researchCompanyBtn = $('#research-company-btn');
+    const refreshResearchBtn = $('#refresh-research-btn');
+    const companyResearchStatus = $('#company-research-status-text');
+    const companyResearchResult = $('#company-research-result');
+    const companyResearchName = $('#company-research-name');
+    const companyResearchContent = $('#company-research-content');
+    const companyResearchTimestamp = $('#company-research-timestamp');
+    const companyResearchError = $('#company-research-error');
+
     // Tab switching logic
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -244,6 +254,7 @@
     let currentJobText = '';
     let currentCompanyName = '';
     let currentJobTitle = '';
+    let currentCompanyResearch = ''; // Stores the compiled company research data
     let abortController = null; // For canceling fetch requests
     let coverLetterAbortController = null; // For canceling cover letter requests
     let isSending = false;
@@ -768,6 +779,21 @@
 
         // Update cover letter button state
         updateCoverLetterButtonState();
+
+        // Enable company research button
+        researchCompanyBtn.disabled = false;
+
+        // Check if we have cached company research for this company
+        const cacheKey = `COMPANY_RESEARCH_${companyName}`;
+        const { [cacheKey]: cachedResearch } = await chrome.storage.local.get([cacheKey]);
+        if (cachedResearch && cachedResearch.timestamp) {
+            const age = Date.now() - cachedResearch.timestamp;
+            // Auto-load cached data if less than 24 hours old
+            if (age < 24 * 60 * 60 * 1000) {
+                console.log('[Company Research] Auto-loading cached data');
+                displayCompanyResearch(cachedResearch);
+            }
+        }
     };
 
     // Toggle more matches section
@@ -1323,6 +1349,112 @@ Write only the cover letter text, without any additional commentary or explanati
         }
     };
 
+    // Company Research function
+    const researchCompany = async (forceRefresh = false) => {
+        if (!currentCompanyName) {
+            companyResearchError.textContent = 'No company name available. Please load a job first.';
+            companyResearchError.style.display = 'block';
+            companyResearchResult.style.display = 'none';
+            return;
+        }
+
+        // Check cache first (unless force refresh)
+        if (!forceRefresh) {
+            const cacheKey = `COMPANY_RESEARCH_${currentCompanyName}`;
+            const { [cacheKey]: cachedData } = await chrome.storage.local.get([cacheKey]);
+
+            if (cachedData && cachedData.timestamp) {
+                const age = Date.now() - cachedData.timestamp;
+                // Use cache if less than 24 hours old
+                if (age < 24 * 60 * 60 * 1000) {
+                    console.log('[Company Research] Using cached data (age:', Math.round(age / 1000 / 60), 'minutes)');
+                    displayCompanyResearch(cachedData);
+                    return;
+                }
+            }
+        }
+
+        // Show loading state
+        researchCompanyBtn.disabled = true;
+        researchCompanyBtn.textContent = '⏳ Researching...';
+        companyResearchStatus.textContent = 'Gathering company information...';
+        companyResearchStatus.style.color = '#0073b1';
+        companyResearchError.style.display = 'none';
+        companyResearchResult.style.display = 'none';
+
+        try {
+            console.log('[Company Research] Starting research for:', currentCompanyName);
+
+            // Send message to background script to research company
+            const response = await chrome.runtime.sendMessage({
+                type: 'RESEARCH_COMPANY',
+                companyName: currentCompanyName,
+                jobDescription: currentJobText
+            });
+
+            if (response.success) {
+                console.log('[Company Research] Research completed successfully');
+
+                // Store in cache
+                const cacheKey = `COMPANY_RESEARCH_${currentCompanyName}`;
+                await chrome.storage.local.set({
+                    [cacheKey]: {
+                        companyName: currentCompanyName,
+                        description: response.description,
+                        sources: response.sources,
+                        timestamp: Date.now()
+                    }
+                });
+
+                // Display results
+                displayCompanyResearch({
+                    companyName: currentCompanyName,
+                    description: response.description,
+                    sources: response.sources,
+                    timestamp: Date.now()
+                });
+
+                // Update global variable for use in Q&A
+                currentCompanyResearch = response.description;
+
+            } else {
+                throw new Error(response.error || 'Failed to research company');
+            }
+
+        } catch (error) {
+            console.error('[Company Research] Error:', error);
+            companyResearchError.textContent = `Error: ${error.message}`;
+            companyResearchError.style.display = 'block';
+            companyResearchStatus.textContent = '';
+        } finally {
+            researchCompanyBtn.disabled = false;
+            researchCompanyBtn.textContent = '🔍 Research Company';
+        }
+    };
+
+    // Display company research results
+    const displayCompanyResearch = (data) => {
+        companyResearchName.textContent = data.companyName;
+        companyResearchContent.textContent = data.description;
+
+        const date = new Date(data.timestamp);
+        companyResearchTimestamp.textContent = `Last updated: ${date.toLocaleString()}`;
+
+        companyResearchResult.style.display = 'block';
+        companyResearchStatus.textContent = '✓ Research completed';
+        companyResearchStatus.style.color = '#2e7d32';
+        refreshResearchBtn.style.display = 'inline-block';
+
+        // Update global variable
+        currentCompanyResearch = data.description;
+    };
+
+    // Research company button handler
+    researchCompanyBtn.onclick = () => researchCompany(false);
+
+    // Refresh research button handler
+    refreshResearchBtn.onclick = () => researchCompany(true);
+
     // Custom question handler
     askCustomQuestionBtn.onclick = async () => {
         const customQuestionText = customQuestionInput.value.trim();
@@ -1363,9 +1495,43 @@ Write only the cover letter text, without any additional commentary or explanati
         askCustomQuestionBtn.textContent = 'Generating...';
 
         try {
+            // Check if prompt requires company research
+            if (/{company_research}|{company_description}/.test(customQuestionText)) {
+                if (!currentCompanyResearch) {
+                    customAnswer.innerHTML = `
+                        <div style="color: #c62828; padding: 12px; background: #ffebee; border-radius: 4px;">
+                            <div style="font-weight: 600; margin-bottom: 8px;">⚠️ Company Research Required</div>
+                            <div style="margin-bottom: 8px;">This question requires company research data. Please complete the 'Company Research' tab first.</div>
+                            <button id="goto-company-research" class="copy-btn" style="margin-top: 8px;">Go to Company Research →</button>
+                        </div>
+                    `;
+                    customAnswer.style.display = 'block';
+
+                    // Add click handler to navigate to company research tab
+                    setTimeout(() => {
+                        const gotoBtn = document.getElementById('goto-company-research');
+                        if (gotoBtn) {
+                            gotoBtn.onclick = () => {
+                                // Switch to company research tab
+                                tabBtns.forEach(b => b.classList.remove('active'));
+                                tabContents.forEach(c => c.classList.remove('active'));
+
+                                const companyResearchTab = document.querySelector('[data-tab="company-research"]');
+                                const companyResearchContent = document.getElementById('tab-company-research');
+
+                                companyResearchTab.classList.add('active');
+                                companyResearchContent.classList.add('active');
+                            };
+                        }
+                    }, 100);
+
+                    return;
+                }
+            }
+
             // Replace variables in the custom question/prompt
             // Check if the input contains variable placeholders
-            const hasVariables = /{resume}|{job_title}|{company_name}|{job_description}/.test(customQuestionText);
+            const hasVariables = /{resume}|{job_title}|{company_name}|{job_description}|{company_research}|{company_description}/.test(customQuestionText);
 
             let customPrompt;
             if (hasVariables) {
@@ -1375,7 +1541,9 @@ Write only the cover letter text, without any additional commentary or explanati
                     .replace(/{resume}/g, RESUME_TEXT || '')
                     .replace(/{job_title}/g, currentJobTitle || 'this position')
                     .replace(/{company_name}/g, currentCompanyName || 'the company')
-                    .replace(/{job_description}/g, currentJobText || '');
+                    .replace(/{job_description}/g, currentJobText || '')
+                    .replace(/{company_research}/g, currentCompanyResearch || '')
+                    .replace(/{company_description}/g, currentCompanyResearch || '');
 
                 console.log('[Q&A] Variables replaced. Prompt length:', customPrompt.length);
             } else {

@@ -483,6 +483,69 @@ clearExpiredCache().then(count => {
   }
 });
 
+// Company research function
+async function researchCompany(companyName, jobDescription) {
+  console.log('[Background] Starting company research for:', companyName);
+
+  const sources = [];
+  let description = '';
+
+  try {
+    // 1. Extract "About the Company" from job description
+    const aboutCompanyMatch = jobDescription.match(/About\s+(?:the\s+)?Company[:\s]+([\s\S]*?)(?=\n\n|$)/i);
+    if (aboutCompanyMatch && aboutCompanyMatch[1]) {
+      const aboutText = aboutCompanyMatch[1].trim();
+      if (aboutText.length > 50) {
+        description += `**About the Company (from job posting):**\n${aboutText}\n\n`;
+        sources.push('Job Description');
+        console.log('[Background] Extracted "About the Company" section:', aboutText.substring(0, 100));
+      }
+    }
+
+    // 2. Try to get LinkedIn company page description
+    // Note: This would require navigating to the company page or using LinkedIn API
+    // For now, we'll extract what we can from the job description
+
+    // Extract company information from job description
+    const companyInfoPatterns = [
+      /About\s+us[:\s]+([\s\S]*?)(?=\n\n|$)/i,
+      /Who\s+we\s+are[:\s]+([\s\S]*?)(?=\n\n|$)/i,
+      /Company\s+overview[:\s]+([\s\S]*?)(?=\n\n|$)/i,
+      /Our\s+company[:\s]+([\s\S]*?)(?=\n\n|$)/i
+    ];
+
+    for (const pattern of companyInfoPatterns) {
+      const match = jobDescription.match(pattern);
+      if (match && match[1]) {
+        const text = match[1].trim();
+        if (text.length > 50 && !description.includes(text)) {
+          description += `**Company Information:**\n${text}\n\n`;
+          if (!sources.includes('Job Description')) {
+            sources.push('Job Description');
+          }
+          console.log('[Background] Extracted company info:', text.substring(0, 100));
+          break;
+        }
+      }
+    }
+
+    // If no description found, provide a basic message
+    if (!description) {
+      description = `Company: ${companyName}\n\nNo detailed company information was found in the job description. You may want to visit the company's LinkedIn page or website for more information.`;
+      sources.push('Basic Info');
+    }
+
+    return {
+      description: description.trim(),
+      sources: sources
+    };
+
+  } catch (error) {
+    console.error('[Background] Error in researchCompany:', error);
+    throw new Error(`Failed to research company: ${error.message}`);
+  }
+}
+
 // Listen for messages from content script and forward to side panel
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'JOB_DATA_UPDATED') {
@@ -569,6 +632,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       })
       .catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+    return true;
+  } else if (message.type === 'RESEARCH_COMPANY') {
+    // Handle company research request
+    console.log('[Background] Researching company:', message.companyName);
+    researchCompany(message.companyName, message.jobDescription)
+      .then(result => {
+        console.log('[Background] Company research completed');
+        sendResponse({ success: true, description: result.description, sources: result.sources });
+      })
+      .catch(error => {
+        console.error('[Background] Company research error:', error);
         sendResponse({ success: false, error: error.message });
       });
     return true;

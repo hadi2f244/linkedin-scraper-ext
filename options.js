@@ -594,31 +594,66 @@ Write only the cover letter text, without any additional commentary or explanati
         return result;
     }
 
-    document.getElementById('save').onclick = async () => {
-        const settingsToSave = {
-            AI_PROVIDER: aiProviderEl.value,
-            OPENAI_API_KEY: keyEl.value.trim(),
-            API_ENDPOINT: apiEndpointEl.value.trim(),
-            AI_MODEL: aiModelEl.value.trim() || 'gpt-4o-mini',
-            USER_PROMPT: promptEl.value,
-            AUTO_SEND_CHATGPT: autoSendEl.checked,
-            SEARCH_KEYWORDS: keywordsEl.value.trim(),
-            BAD_KEYWORDS: badKeywordsEl.value.trim(),
-            ENABLE_BADGE_SCANNER: enableBadgeScannerEl.checked,
-            ENABLE_VISA_BADGE: enableVisaBadgeEl.checked,
-            BADGE_KEYWORDS: badgeKeywordsEl.value.trim(),
-            COVER_LETTER_PROMPT: coverLetterPromptEl.value.trim(),
-            APPLICATION_QUESTIONS: questions.map(q => `${q.question} | ${q.prompt}`).join('\n')
-        };
+    const saveBtn = document.getElementById('save');
 
-        console.log('Saving settings:', {
-            ...settingsToSave,
-            OPENAI_API_KEY: settingsToSave.OPENAI_API_KEY ? 'Present' : 'Empty'
-        });
+    saveBtn.onclick = async () => {
+        // Disable button and show loading state
+        saveBtn.disabled = true;
+        saveBtn.textContent = '⏳ Saving...';
+        statusEl.textContent = 'Saving settings...';
+        statusEl.style.color = '#0073b1';
+        statusEl.style.display = 'block';
 
-        await chrome.storage.local.set(settingsToSave);
-        statusEl.textContent = 'Saved.';
-        setTimeout(() => statusEl.textContent = '', 1500);
+        try {
+            const settingsToSave = {
+                AI_PROVIDER: aiProviderEl.value,
+                OPENAI_API_KEY: keyEl.value.trim(),
+                API_ENDPOINT: apiEndpointEl.value.trim(),
+                AI_MODEL: aiModelEl.value.trim() || 'gpt-4o-mini',
+                USER_PROMPT: promptEl.value,
+                AUTO_SEND_CHATGPT: autoSendEl.checked,
+                SEARCH_KEYWORDS: keywordsEl.value.trim(),
+                BAD_KEYWORDS: badKeywordsEl.value.trim(),
+                ENABLE_BADGE_SCANNER: enableBadgeScannerEl.checked,
+                ENABLE_VISA_BADGE: enableVisaBadgeEl.checked,
+                BADGE_KEYWORDS: badgeKeywordsEl.value.trim(),
+                COVER_LETTER_PROMPT: coverLetterPromptEl.value.trim(),
+                APPLICATION_QUESTIONS: questions.map(q => `${q.question} | ${q.prompt}`).join('\n')
+            };
+
+            console.log('Saving settings:', {
+                ...settingsToSave,
+                OPENAI_API_KEY: settingsToSave.OPENAI_API_KEY ? 'Present' : 'Empty'
+            });
+
+            await chrome.storage.local.set(settingsToSave);
+
+            // Show success message
+            statusEl.textContent = '✓ Settings saved successfully!';
+            statusEl.style.color = '#2e7d32';
+
+            // Auto-hide after 4 seconds
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.style.display = 'none';
+            }, 4000);
+
+        } catch (error) {
+            // Show error message
+            console.error('Failed to save settings:', error);
+            statusEl.textContent = `✗ Failed to save settings: ${error.message}`;
+            statusEl.style.color = '#c62828';
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.style.display = 'none';
+            }, 5000);
+        } finally {
+            // Re-enable button and restore text
+            saveBtn.disabled = false;
+            saveBtn.textContent = '💾 Save All Settings';
+        }
     };
 
     // Initialize Copilot status on load

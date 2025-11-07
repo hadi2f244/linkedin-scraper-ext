@@ -17,6 +17,7 @@
         <button class="tab-btn active" data-tab="job-details">📋 Job Details</button>
         <button class="tab-btn" data-tab="cover-letter">📄 Cover Letter</button>
         <button class="tab-btn" data-tab="qa">❓ Q&A</button>
+        <button class="tab-btn" data-tab="company-research">🏢 Company Research</button>
     </div>
 
     <!-- Tab: Job Details -->
@@ -78,6 +79,37 @@
             <button id="ask-custom-question" class="copy-btn" style="margin-top: 8px;">🤔 Get Answer</button>
             <div id="custom-answer" class="custom-answer" style="margin-top: 12px; display: none;"></div>
         </div>
+    </div>
+
+    <!-- Tab: Company Research -->
+    <div class="tab-content" id="tab-company-research">
+        <div style="margin-bottom: 16px;">
+            <p style="color: #666; font-size: 13px; line-height: 1.5; margin-bottom: 12px;">
+                Automatically gather company information from LinkedIn company page, job description, and company website.
+            </p>
+            <div class="button-group">
+                <button id="research-company-btn" class="copy-btn" disabled>🔍 Research Company</button>
+                <button id="refresh-research-btn" class="copy-btn" style="display: none;">🔄 Refresh Research</button>
+            </div>
+        </div>
+
+        <div id="company-research-status" class="muted" style="margin-bottom: 12px;">
+            <span id="company-research-status-text"></span>
+        </div>
+
+        <div id="company-research-result" style="display: none;">
+            <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-bottom: 12px;">
+                <div style="font-weight: 600; color: #0073b1; margin-bottom: 8px;">
+                    <span id="company-research-name"></span>
+                </div>
+                <div id="company-research-content" style="color: #333; line-height: 1.6; white-space: pre-wrap; font-size: 13px;"></div>
+            </div>
+            <div style="font-size: 11px; color: #999; margin-top: 8px;">
+                <span id="company-research-timestamp"></span>
+            </div>
+        </div>
+
+        <div id="company-research-error" style="display: none; color: #c62828; padding: 12px; background: #ffebee; border-radius: 4px; margin-top: 12px;"></div>
     </div>
 
     <p class="muted" style="margin-top:10px; font-size: 11px;">

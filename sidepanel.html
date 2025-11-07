@@ -36,9 +36,15 @@
             <button id="toggle-cover-letter" class="toggle-btn">Show</button>
         </div>
         <div id="cover-letter-content" class="cover-letter-content" style="display: none;">
-            <div id="cover-letter-status" class="muted" style="margin-bottom: 8px;"></div>
+            <div id="cover-letter-status" class="muted" style="margin-bottom: 8px;">
+                <span id="cover-letter-status-text"></span>
+                <span id="editable-indicator" class="editable-indicator" style="display: none;">✏️ Editable</span>
+            </div>
             <div id="cover-letter-text" class="cover-letter-text"></div>
-            <button id="copy-cover-letter" class="copy-btn" style="display: none;">📋 Copy to Clipboard</button>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button id="copy-cover-letter" class="copy-btn" style="display: none;">📋 Copy to Clipboard</button>
+                <button id="save-pdf-cover-letter" class="copy-btn" style="display: none;">💾 Save as PDF</button>
+            </div>
         </div>
     </div>
 

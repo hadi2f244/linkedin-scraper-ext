@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Feature</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0073b1;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #0073b1;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .info {
+            color: #0073b1;
+            font-weight: bold;
+        }
+        ul {
+            line-height: 1.8;
+        }
+        .filename {
+            background: #e3f2fd;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Feature 2: Save Cover Letter as PDF - Implementation Complete</h1>
+        
+        <div class="test-section">
+            <h2>📋 Summary of Changes</h2>
+            <p>Successfully implemented the "Save as PDF" functionality for generated cover letters.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Files Modified</h2>
+            <ul>
+                <li><strong>sidepanel.html</strong> - Added "Save as PDF" button next to "Copy to Clipboard"</li>
+                <li><strong>sidepanel.js</strong> - Implemented PDF generation using browser's print API</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>✨ New Features</h2>
+            <ul>
+                <li>💾 "Save as PDF" button appears after cover letter generation</li>
+                <li>📄 Opens browser's print dialog with PDF save option</li>
+                <li>📝 Automatic filename generation with format: <span class="filename">CoverLetter_{CompanyName}_{JobTitle}_{Date}.pdf</span></li>
+                <li>🎨 Professional PDF formatting with proper styling</li>
+                <li>🔄 Button feedback showing "Opening print dialog..." status</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Code Changes - sidepanel.html (Lines 38-45)</h2>
+            <div class="code-block">
+&lt;div id="cover-letter-content" class="cover-letter-content" style="display: none;"&gt;
+    &lt;div id="cover-letter-status" class="muted"&gt;&lt;/div&gt;
+    &lt;div id="cover-letter-text" class="cover-letter-text"&gt;&lt;/div&gt;
+    &lt;div style="display: flex; gap: 8px; margin-top: 8px;"&gt;
+        &lt;button id="copy-cover-letter" class="copy-btn"&gt;📋 Copy to Clipboard&lt;/button&gt;
+        &lt;button id="save-pdf-cover-letter" class="copy-btn"&gt;💾 Save as PDF&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Code Changes - sidepanel.js</h2>
+            
+            <p><strong>Added button element reference (Line 22):</strong></p>
+            <div class="code-block">
+const savePdfCoverLetterBtn = $('#save-pdf-cover-letter');
+            </div>
+            
+            <p><strong>Implemented PDF save handler (Lines 68-153):</strong></p>
+            <div class="code-block">
+savePdfCoverLetterBtn.onclick = async () => {
+    // Get current date in YYYY-MM-DD format
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    
+    // Sanitize company name and job title for filename
+    const sanitize = (str) => {
+        return str.replace(/[^a-z0-9]/gi, '_')
+                  .replace(/_+/g, '_')
+                  .replace(/^_|_$/g, '');
+    };
+    
+    const companyName = sanitize(currentCompanyName || 'Company');
+    const jobTitle = sanitize(currentJobTitle || 'Position');
+    const filename = `CoverLetter_${companyName}_${jobTitle}_${dateStr}.pdf`;
+    
+    // Create a temporary window with formatted content
+    const printWindow = window.open('', '_blank');
+    
+    // Write HTML with professional styling
+    printWindow.document.write(`
+        &lt;!DOCTYPE html&gt;
+        &lt;html&gt;
+        &lt;head&gt;
+            &lt;title&gt;${filename}&lt;/title&gt;
+            &lt;style&gt;
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    max-width: 800px;
+                    margin: 40px auto;
+                    padding: 20px;
+                    color: #333;
+                }
+                h1 {
+                    font-size: 24px;
+                    margin-bottom: 20px;
+                    color: #0073b1;
+                }
+            &lt;/style&gt;
+        &lt;/head&gt;
+        &lt;body&gt;
+            &lt;h1&gt;Cover Letter&lt;/h1&gt;
+            ${coverLetterText.innerHTML}
+        &lt;/body&gt;
+        &lt;/html&gt;
+    `);
+    
+    // Trigger print dialog
+    printWindow.onload = () => {
+        setTimeout(() => {
+            printWindow.print();
+        }, 100);
+    };
+};
+            </div>
+            
+            <p><strong>Updated button visibility controls (Lines 1036, 1142):</strong></p>
+            <div class="code-block">
+// Hide buttons when generating
+copyCoverLetterBtn.style.display = 'none';
+savePdfCoverLetterBtn.style.display = 'none';
+
+// Show buttons when generation complete
+copyCoverLetterBtn.style.display = 'block';
+savePdfCoverLetterBtn.style.display = 'block';
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 How It Works</h2>
+            <ol>
+                <li><strong>Filename Generation:</strong>
+                    <ul>
+                        <li>Extracts company name and job title from current job data</li>
+                        <li>Sanitizes special characters (replaces with underscores)</li>
+                        <li>Adds current date in YYYY-MM-DD format</li>
+                        <li>Example: <span class="filename">CoverLetter_LinuxRecruit_Platform_Engineer_2025-11-07.pdf</span></li>
+                    </ul>
+                </li>
+                <li><strong>PDF Generation:</strong>
+                    <ul>
+                        <li>Opens a new window with formatted HTML content</li>
+                        <li>Applies professional styling (fonts, spacing, colors)</li>
+                        <li>Triggers browser's native print dialog</li>
+                        <li>User can save as PDF using "Save as PDF" destination</li>
+                    </ul>
+                </li>
+                <li><strong>User Experience:</strong>
+                    <ul>
+                        <li>Button shows "Opening print dialog..." feedback</li>
+                        <li>Print dialog opens automatically</li>
+                        <li>User selects "Save as PDF" as printer destination</li>
+                        <li>Suggested filename is pre-filled</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Testing Instructions</h2>
+            <ol>
+                <li><strong>Reload the extension</strong> in Chrome (chrome://extensions → reload)</li>
+                <li><strong>Navigate to a LinkedIn job</strong> page</li>
+                <li><strong>Open the side panel</strong> (click extension icon)</li>
+                <li><strong>Click "Generate Cover Letter"</strong></li>
+                <li><strong>Wait for generation</strong> to complete</li>
+                <li><strong>Verify two buttons appear:</strong>
+                    <ul>
+                        <li>📋 Copy to Clipboard</li>
+                        <li>💾 Save as PDF</li>
+                    </ul>
+                </li>
+                <li><strong>Click "Save as PDF"</strong></li>
+                <li><strong>Verify print dialog opens</strong> with:
+                    <ul>
+                        <li>Cover letter content visible in preview</li>
+                        <li>Professional formatting applied</li>
+                    </ul>
+                </li>
+                <li><strong>Select "Save as PDF"</strong> as destination</li>
+                <li><strong>Verify filename format:</strong> <span class="filename">CoverLetter_{Company}_{JobTitle}_{Date}.pdf</span></li>
+                <li><strong>Save the PDF</strong> and verify content is correct</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>✅ Expected Behavior</h2>
+            <ul>
+                <li class="success">✓ "Save as PDF" button appears after cover letter generation</li>
+                <li class="success">✓ Button is hidden during generation</li>
+                <li class="success">✓ Clicking button opens print dialog</li>
+                <li class="success">✓ Filename follows format: CoverLetter_{Company}_{JobTitle}_{Date}.pdf</li>
+                <li class="success">✓ PDF content is properly formatted</li>
+                <li class="success">✓ Special characters in company/job title are sanitized</li>
+                <li class="success">✓ Button shows temporary feedback message</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Implementation Status</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="background: #f0f0f0;">
+                    <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Feature</th>
+                    <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Status</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Feature 1: Cover Letter Generation</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><span class="success">✅ COMPLETE</span></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Feature 2: Save as PDF</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;"><span class="success">✅ COMPLETE</span></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Feature 3: Fuzzy Matching</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">⏳ Not Started</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">Feature 4: Application Helper</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">⏳ Not Started</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 Next Steps</h2>
+            <p class="info">After testing Feature 2 successfully:</p>
+            <ul>
+                <li>Proceed to <strong>Feature 3: Fuzzy Company Name Matching for Visa Sponsorship</strong></li>
+                <li>Then <strong>Feature 4: Job Application Question Auto-Responder</strong></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+

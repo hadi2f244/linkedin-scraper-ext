@@ -83,7 +83,7 @@
     <input type="checkbox" id="enable-badge-scanner" />
     Enable automatic badge scanning on job listings
 </label>
-<p class="muted" style="margin-left: 20px;">When enabled, the extension will automatically scan visible job listings and display badges based on your criteria.</p>
+<p class="muted" style="margin-left: 20px;">When enabled, the extension will automatically scan visible job listings when you load or refresh the LinkedIn jobs page and display badges based on your criteria. When disabled, badges will not be shown automatically (useful for testing or reducing API calls).</p>
 
 <label style="margin-top: 16px;">
     <input type="checkbox" id="enable-visa-badge" />
@@ -92,8 +92,22 @@
 <p class="muted" style="margin-left: 20px;">Display a badge on jobs that mention visa sponsorship in their description.</p>
 
 <label style="margin-top: 16px;">Badge Keywords (one per line, format: keyword|color)</label>
-<textarea id="badge-keywords" placeholder="kubernetes|#4caf50&#10;docker|#2196f3&#10;python|#ff9800&#10;aws|#f44336" style="height: 120px; width: 640px; max-width: 100%;"></textarea>
+<textarea id="badge-keywords" placeholder="kubernetes|#4caf50&#10;docker|#2196F3&#10;python|#ff9800&#10;aws|#f44336" style="height: 120px; width: 640px; max-width: 100%;"></textarea>
 <p class="muted">Enter keywords to display as badges. Format: keyword|hexcolor (e.g., kubernetes|#4caf50). One per line. Leave color empty to use default.</p>
+
+<h2 style="margin-top: 32px; border-top: 2px solid #e0e0e0; padding-top: 20px;">Cover Letter Settings</h2>
+<p class="muted">Customize the AI prompt used to generate cover letters. Use variables to insert job-specific information.</p>
+
+<label style="margin-top: 16px;">Cover Letter Prompt Template</label>
+<textarea id="cover-letter-prompt" placeholder="You are a professional career advisor..." style="height: 200px; width: 640px; max-width: 100%;"></textarea>
+<p class="muted">
+    <strong>Available variables:</strong><br>
+    • <code>{job_title}</code> - The job title<br>
+    • <code>{company_name}</code> - The company name<br>
+    • <code>{job_description}</code> - The full job description<br>
+    • <code>{resume}</code> - Your uploaded resume text<br><br>
+    <strong>Example:</strong> "Based on my resume and the job description for {job_title} at {company_name}, write a compelling cover letter..."
+</p>
 
 <label style="margin-top: 16px;">Resume / CV (PDF)</label>
 <input id="resume-file" type="file" accept=".pdf" style="margin-bottom: 8px;" />

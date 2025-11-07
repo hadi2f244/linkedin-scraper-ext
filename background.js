@@ -81,20 +81,118 @@ const extractCoreCompanyName = (name) => {
   return core;
 };
 
-const companyNamesMatch = (searchName, csvName) => {
+// Calculate Levenshtein distance for fuzzy string matching
+const levenshteinDistance = (str1, str2) => {
+  const len1 = str1.length;
+  const len2 = str2.length;
+  const matrix = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+
+  for (let i = 0; i <= len1; i++) matrix[i][0] = i;
+  for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= len1; i++) {
+    for (let j = 1; j <= len2; j++) {
+      const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,      // deletion
+        matrix[i][j - 1] + 1,      // insertion
+        matrix[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+
+  return matrix[len1][len2];
+};
+
+// Calculate fuzzy match confidence score (0-100)
+const calculateFuzzyMatchScore = (searchName, csvName) => {
+  if (!searchName || !csvName) return 0;
+
   const n1 = normalizeCompanyName(searchName);
   const n2 = normalizeCompanyName(csvName);
-  if (!n1 || !n2) return false;
-  if (n1 === n2) return true;
+
+  if (!n1 || !n2) return 0;
+
+  // 1. Exact match after normalization = 100
+  if (n1 === n2) return 100;
+
   const core1 = extractCoreCompanyName(searchName);
   const core2 = extractCoreCompanyName(csvName);
-  if (core1 === core2 && core1.length > 0) return true;
-  if (core1.length <= 5 || core2.length <= 5) {
-    return core1 === core2;
+
+  // 2. Exact core match = 100 (treat as exact match)
+  if (core1 === core2 && core1.length > 0) return 100;
+
+  // 3. One is substring of the other (after normalization)
+  // STRICTER: Only match if the shorter name is at least 70% of the longer name
+  if (n1.includes(n2) || n2.includes(n1)) {
+    const longer = n1.length > n2.length ? n1 : n2;
+    const shorter = n1.length > n2.length ? n2 : n1;
+    const ratio = shorter.length / longer.length;
+
+    // Only match if shorter is at least 70% of longer
+    if (ratio >= 0.7) {
+      return Math.floor(85 + (ratio * 10)); // 85-95
+    }
   }
-  if (core1.length > 5 && n2.startsWith(core1)) return true;
-  if (core2.length > 5 && n1.startsWith(core2)) return true;
-  return false;
+
+  // 4. Core name substring match
+  // STRICTER: Only match if the shorter core is at least 80% of the longer core
+  if (core1.includes(core2) || core2.includes(core1)) {
+    const longer = core1.length > core2.length ? core1 : core2;
+    const shorter = core1.length > core2.length ? core2 : core1;
+    const ratio = shorter.length / longer.length;
+
+    // Only match if shorter is at least 80% of longer
+    if (ratio >= 0.8) {
+      return Math.floor(75 + (ratio * 10)); // 75-85
+    }
+  }
+
+  // 5. Word-based matching - MUCH STRICTER
+  const words1 = core1.split(/\s+/).filter(w => w.length > 2);
+  const words2 = core2.split(/\s+/).filter(w => w.length > 2);
+
+  if (words1.length > 0 && words2.length > 0) {
+    let matchingWords = 0;
+    for (const w1 of words1) {
+      for (const w2 of words2) {
+        // STRICTER: Only exact word matches, no substring matching
+        if (w1 === w2) {
+          matchingWords++;
+          break;
+        }
+      }
+    }
+    const wordMatchRatio = matchingWords / Math.max(words1.length, words2.length);
+
+    // STRICTER: Require at least 80% word match (was 50%)
+    if (wordMatchRatio >= 0.8) {
+      return Math.floor(60 + (wordMatchRatio * 20)); // 60-80
+    }
+  }
+
+  // 6. Levenshtein distance for typo tolerance - STRICTER
+  const maxLen = Math.max(core1.length, core2.length);
+  if (maxLen > 0) {
+    const distance = levenshteinDistance(core1, core2);
+    const similarity = 1 - (distance / maxLen);
+
+    // STRICTER: Require 85% similarity (was 70%)
+    if (similarity >= 0.85) {
+      return Math.floor(similarity * 70); // Up to 70 for high similarity
+    }
+  }
+
+  // 7. Acronym matching - REMOVED (too prone to false positives)
+  // Example: "IT" would match "Information Technology" but also many other companies
+
+  return 0; // No match
+};
+
+// Legacy function for backward compatibility - now uses fuzzy scoring
+const companyNamesMatch = (searchName, csvName) => {
+  const score = calculateFuzzyMatchScore(searchName, csvName);
+  return score >= 85; // STRICTER: Increased threshold from 60 to 85
 };
 
 const searchCompaniesInIndexedDB = async (companyName) => {
@@ -108,28 +206,37 @@ const searchCompaniesInIndexedDB = async (companyName) => {
       request.onsuccess = () => {
         const allCompanies = request.result;
         const matches = [];
-        const searchCore = extractCoreCompanyName(companyName);
+
+        console.log(`[Background] Searching ${allCompanies.length} companies for: "${companyName}"`);
 
         for (const row of allCompanies) {
           const orgName = row['Organisation Name'] || '';
-          if (companyNamesMatch(companyName, orgName)) {
-            const csvCore = extractCoreCompanyName(orgName);
-            let score = 0;
-            if (normalizeCompanyName(companyName) === normalizeCompanyName(orgName)) {
-              score = 100;
-            } else if (searchCore === csvCore) {
-              score = 90;
-            } else if (normalizeCompanyName(orgName).startsWith(normalizeCompanyName(companyName))) {
-              score = 80;
-            } else {
-              score = 50;
-            }
-            matches.push({ ...row, matchScore: score });
+
+          // Use the new fuzzy matching score
+          const score = calculateFuzzyMatchScore(companyName, orgName);
+
+          // Only include matches with score >= 85 (stricter threshold to reduce false positives)
+          if (score >= 85) {
+            matches.push({
+              ...row,
+              matchScore: score,
+              confidence: score // Add confidence field for display
+            });
           }
         }
 
+        console.log(`[Background] Found ${matches.length} matches with score >= 85`);
+
+        // Sort by score (highest first)
         matches.sort((a, b) => b.matchScore - a.matchScore);
-        const topMatches = matches.slice(0, 5);
+
+        // Return top 10 matches (increased from 5 for better fuzzy results)
+        const topMatches = matches.slice(0, 10);
+
+        if (topMatches.length > 0) {
+          console.log(`[Background] Top match: "${topMatches[0]['Organisation Name']}" (score: ${topMatches[0].matchScore})`);
+        }
+
         db.close();
         resolve(topMatches);
       };

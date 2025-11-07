@@ -16,9 +16,11 @@
     const coverLetterContainer = $('#cover-letter-container');
     const toggleCoverLetterBtn = $('#toggle-cover-letter');
     const coverLetterContent = $('#cover-letter-content');
-    const coverLetterStatus = $('#cover-letter-status');
+    const coverLetterStatus = $('#cover-letter-status-text');
+    const editableIndicator = $('#editable-indicator');
     const coverLetterText = $('#cover-letter-text');
     const copyCoverLetterBtn = $('#copy-cover-letter');
+    const savePdfCoverLetterBtn = $('#save-pdf-cover-letter');
 
     const openOptionsLink = $('#open-options');
     if (openOptionsLink) {
@@ -64,8 +66,106 @@
         }
     };
 
+    // Handle save as PDF button
+    savePdfCoverLetterBtn.onclick = async () => {
+        try {
+            // Get current date in YYYY-MM-DD format
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+
+            // Sanitize company name and job title for filename
+            const sanitize = (str) => {
+                return str.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+            };
+
+            const companyName = sanitize(currentCompanyName || 'Company');
+            const jobTitle = sanitize(currentJobTitle || 'Position');
+            const filename = `CoverLetter_${companyName}_${jobTitle}_${dateStr}.pdf`;
+
+            // Create a temporary container for the PDF content
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                alert('Please allow popups to save as PDF');
+                return;
+            }
+
+            // Get the cover letter text and convert newlines to HTML
+            // The text is stored as plain text with \n for newlines
+            // We need to convert it to HTML paragraphs for proper PDF formatting
+            const coverLetterPlainText = coverLetterText.textContent || '';
+
+            // Split by double newlines to get paragraphs, then wrap each in <p> tags
+            // Also handle single newlines within paragraphs as <br> tags
+            const paragraphs = coverLetterPlainText
+                .split(/\n\n+/)  // Split on double newlines (paragraph breaks)
+                .map(para => {
+                    // Replace single newlines with <br> tags
+                    const formatted = para.trim().replace(/\n/g, '<br>');
+                    return formatted ? `<p>${formatted}</p>` : '';
+                })
+                .filter(p => p)  // Remove empty paragraphs
+                .join('\n');
+
+            // Write the cover letter content to the new window
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${filename}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            line-height: 1.6;
+                            max-width: 800px;
+                            margin: 40px auto;
+                            padding: 20px;
+                            color: #333;
+                        }
+                        p {
+                            margin-bottom: 16px;
+                            text-align: left;
+                        }
+                        @media print {
+                            body {
+                                margin: 0;
+                                padding: 20px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${paragraphs}
+                </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+
+            // Wait for content to load, then trigger print dialog
+            printWindow.onload = () => {
+                setTimeout(() => {
+                    printWindow.print();
+                    // Note: The window will close automatically after printing or canceling
+                    // We don't close it immediately to allow the user to save as PDF
+                }, 100);
+            };
+
+            // Update button text temporarily
+            const originalText = savePdfCoverLetterBtn.textContent;
+            savePdfCoverLetterBtn.textContent = '✓ Opening print dialog...';
+            setTimeout(() => {
+                savePdfCoverLetterBtn.textContent = originalText;
+            }, 3000);
+
+        } catch (err) {
+            console.error('Failed to save as PDF:', err);
+            alert('Failed to save as PDF. Please try again.');
+        }
+    };
+
     let currentJobText = '';
     let currentCompanyName = '';
+    let currentJobTitle = '';
     let abortController = null; // For canceling fetch requests
     let coverLetterAbortController = null; // For canceling cover letter requests
     let isSending = false;
@@ -352,18 +452,28 @@
 
         // Show first match
         const firstMatch = matches[0];
+        const score = firstMatch.matchScore || firstMatch.confidence || 0;
         let matchQuality = '';
-        if (firstMatch.matchScore >= 90) {
-            matchQuality = '<span class="match-quality exact">Exact Match</span>';
-        } else if (firstMatch.matchScore >= 80) {
-            matchQuality = '<span class="match-quality high">High Match</span>';
+        let matchDescription = '';
+
+        if (score === 100) {
+            matchQuality = '<span class="match-quality exact">✓ Exact Match</span>';
+            matchDescription = 'This company is in the UK visa sponsorship register';
+        } else if (score >= 95) {
+            matchQuality = '<span class="match-quality exact">✓ Exact Match (95%+)</span>';
+            matchDescription = 'Very high confidence - core company name matches exactly';
+        } else if (score >= 85) {
+            matchQuality = '<span class="match-quality high">~ High Match (85%+)</span>';
+            matchDescription = 'High confidence - similar company name found in register';
         } else {
-            matchQuality = '<span class="match-quality medium">Possible Match</span>';
+            matchQuality = '<span class="match-quality medium">~ Possible Match</span>';
+            matchDescription = 'Moderate confidence - company name is similar';
         }
 
         html += `
             <div class="visa-record" id="visa-record-0">
                 ${matchQuality}
+                <p class="match-description" style="font-size: 12px; color: #666; margin: 4px 0 8px 0;">${matchDescription}</p>
                 <div class="visa-record-title">
                     <strong>✅ ${firstMatch['Organisation Name'] || 'N/A'}</strong>
                     <span class="visa-location">${firstMatch['Town/City'] || 'N/A'}</span>
@@ -389,13 +499,17 @@
             // Show remaining matches
             matches.slice(1).forEach((match, index) => {
                 const actualIndex = index + 1;
+                const score = match.matchScore || match.confidence || 0;
                 let matchQuality = '';
-                if (match.matchScore >= 90) {
-                    matchQuality = '<span class="match-quality exact">Exact Match</span>';
-                } else if (match.matchScore >= 80) {
-                    matchQuality = '<span class="match-quality high">High Match</span>';
+
+                if (score === 100) {
+                    matchQuality = '<span class="match-quality exact">✓ Exact Match</span>';
+                } else if (score >= 95) {
+                    matchQuality = '<span class="match-quality exact">✓ Exact Match (95%+)</span>';
+                } else if (score >= 85) {
+                    matchQuality = '<span class="match-quality high">~ High Match (85%+)</span>';
                 } else {
-                    matchQuality = '<span class="match-quality medium">Possible Match</span>';
+                    matchQuality = '<span class="match-quality medium">~ Possible Match</span>';
                 }
 
                 const recordId = `visa-record-${actualIndex}`;
@@ -482,13 +596,15 @@
     // Display job data in the side panel
     const displayJobData = async (jobData) => {
         // Handle both old format (string) and new format (object)
-        let jobText, companyName;
+        let jobText, companyName, jobTitle;
         if (typeof jobData === 'string') {
             jobText = jobData;
             companyName = '';
+            jobTitle = '';
         } else if (jobData && typeof jobData === 'object') {
             jobText = jobData.text;
             companyName = jobData.companyName || '';
+            jobTitle = jobData.jobTitle || '';
         } else {
             setStatus('No job data available. Click on a job in LinkedIn.', true);
             rawTextPreview.textContent = '';
@@ -501,6 +617,7 @@
 
         currentJobText = normalizeText(jobText);
         currentCompanyName = companyName;
+        currentJobTitle = jobTitle;
 
         setStatus('Job data loaded ✓');
 
@@ -905,14 +1022,15 @@
             return;
         }
 
-        // Get resume from storage
-        const { AI_PROVIDER, RESUME_TEXT, OPENAI_API_KEY, API_ENDPOINT, AI_MODEL } = await chrome.storage.local.get(['AI_PROVIDER', 'RESUME_TEXT', 'OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL']);
+        // Get resume and custom prompt from storage
+        const { AI_PROVIDER, RESUME_TEXT, OPENAI_API_KEY, API_ENDPOINT, AI_MODEL, COVER_LETTER_PROMPT } = await chrome.storage.local.get(['AI_PROVIDER', 'RESUME_TEXT', 'OPENAI_API_KEY', 'API_ENDPOINT', 'AI_MODEL', 'COVER_LETTER_PROMPT']);
 
         console.log('Cover letter generation - AI_PROVIDER:', AI_PROVIDER);
         console.log('Cover letter generation - API_ENDPOINT:', API_ENDPOINT);
         console.log('Cover letter generation - AI_MODEL:', AI_MODEL);
         console.log('Cover letter generation - OPENAI_API_KEY:', OPENAI_API_KEY ? 'Present' : 'Missing');
         console.log('Cover letter generation - RESUME_TEXT length:', RESUME_TEXT ? RESUME_TEXT.length : 0);
+        console.log('Cover letter generation - COVER_LETTER_PROMPT:', COVER_LETTER_PROMPT ? 'Custom prompt loaded' : 'Using default');
 
         if (!RESUME_TEXT) {
             coverLetterStatus.textContent = 'No resume uploaded. Please upload your resume in options.';
@@ -939,21 +1057,27 @@
         generateCoverLetterBtn.style.background = '#d32f2f';
 
         coverLetterText.textContent = '';
+        coverLetterText.removeAttribute('contenteditable');
+        editableIndicator.style.display = 'none';
         coverLetterStatus.textContent = 'Generating cover letter...';
         coverLetterStatus.style.color = '#0073b1';
         copyCoverLetterBtn.style.display = 'none';
+        savePdfCoverLetterBtn.style.display = 'none';
 
         // Create new abort controller
         coverLetterAbortController = new AbortController();
 
-        // Create cover letter prompt
-        const coverLetterPrompt = `You are a professional career advisor. Based on the following resume and job description, write a compelling, professional cover letter.
+        // Create cover letter prompt with variable replacement
+        let coverLetterPrompt = COVER_LETTER_PROMPT || `You are a professional career advisor. Based on the following resume and job description, write a compelling, professional cover letter.
 
 RESUME:
-${RESUME_TEXT}
+{resume}
+
+JOB TITLE: {job_title}
+COMPANY: {company_name}
 
 JOB DESCRIPTION:
-${currentJobText}
+{job_description}
 
 Please write a cover letter that:
 1. Is professional and well-structured
@@ -965,6 +1089,15 @@ Please write a cover letter that:
 7. Addresses specific requirements mentioned in the job description
 
 Write only the cover letter text, without any additional commentary or explanations.`;
+
+        // Replace variables in the prompt
+        coverLetterPrompt = coverLetterPrompt
+            .replace(/{resume}/g, RESUME_TEXT || '')
+            .replace(/{job_title}/g, currentJobTitle || 'this position')
+            .replace(/{company_name}/g, currentCompanyName || 'the company')
+            .replace(/{job_description}/g, currentJobText || '');
+
+        console.log('Cover letter prompt after variable replacement (first 200 chars):', coverLetterPrompt.substring(0, 200));
 
         try {
             let coverLetter = '';
@@ -1034,7 +1167,14 @@ Write only the cover letter text, without any additional commentary or explanati
             coverLetterStatus.textContent = 'Cover letter generated ✓';
             coverLetterStatus.style.color = '#2e7d32';
             coverLetterText.textContent = coverLetter;
+
+            // Make the cover letter editable
+            coverLetterText.setAttribute('contenteditable', 'true');
+            coverLetterText.setAttribute('spellcheck', 'true');
+            editableIndicator.style.display = 'inline-block';
+
             copyCoverLetterBtn.style.display = 'block';
+            savePdfCoverLetterBtn.style.display = 'block';
 
             // Reset button after successful response
             resetCoverLetterButton();

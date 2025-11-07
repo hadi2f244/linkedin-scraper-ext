@@ -549,6 +549,31 @@ a:hover {
     word-wrap: break-word;
     max-height: 600px;
     overflow-y: auto;
+    outline: none; /* Remove default focus outline */
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cover-letter-text[contenteditable="true"] {
+    cursor: text;
+    border: 1px solid #0073b1;
+    box-shadow: 0 0 0 2px rgba(0, 115, 177, 0.1);
+}
+
+.cover-letter-text[contenteditable="true"]:focus {
+    border-color: #005885;
+    box-shadow: 0 0 0 3px rgba(0, 115, 177, 0.2);
+}
+
+/* Editable indicator badge */
+.editable-indicator {
+    display: inline-block;
+    background: #0073b1;
+    color: white;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    margin-left: 8px;
+    font-weight: normal;
 }
 
 .copy-btn {

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Formatting Fix</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0073b1;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #0073b1;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .preview-box {
+            border: 2px solid #0073b1;
+            padding: 20px;
+            margin: 10px 0;
+            background: white;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+        button {
+            background: #0073b1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005885;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .comparison > div {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .comparison h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 PDF Formatting Fix - Test & Verification</h1>
+        
+        <div class="test-section">
+            <h2>📋 Issues Fixed</h2>
+            <ul>
+                <li class="success">✓ Removed "Cover Letter" heading from PDF</li>
+                <li class="success">✓ Fixed formatting - paragraphs now preserved</li>
+                <li class="success">✓ Line breaks within paragraphs maintained</li>
+                <li class="success">✓ Double newlines create paragraph breaks</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Root Cause Analysis</h2>
+            <p><strong>Problem 1:</strong> The PDF had an unwanted <code>&lt;h1&gt;Cover Letter&lt;/h1&gt;</code> heading</p>
+            <p><strong>Solution:</strong> Removed the h1 tag from the HTML template</p>
+            <br>
+            <p><strong>Problem 2:</strong> Cover letter text was stored as plain text (<code>textContent</code>) but PDF generation was using <code>innerHTML</code></p>
+            <p><strong>Why it failed:</strong> Plain text newlines (<code>\n</code>) are ignored by HTML rendering</p>
+            <p><strong>Solution:</strong> Convert plain text to HTML by:</p>
+            <ul>
+                <li>Splitting on double newlines (<code>\n\n</code>) to identify paragraphs</li>
+                <li>Wrapping each paragraph in <code>&lt;p&gt;</code> tags</li>
+                <li>Converting single newlines to <code>&lt;br&gt;</code> tags within paragraphs</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>💻 Code Changes</h2>
+            <p><strong>Before (Lines 80-127):</strong></p>
+            <div class="code-block">// Old code - BROKEN
+printWindow.document.write(`
+    &lt;body&gt;
+        &lt;h1&gt;Cover Letter&lt;/h1&gt;
+        ${coverLetterText.innerHTML}  // ❌ innerHTML on plain text = no formatting
+    &lt;/body&gt;
+`);</div>
+
+            <p><strong>After (Lines 80-139):</strong></p>
+            <div class="code-block">// New code - FIXED
+// Get plain text and convert to HTML
+const coverLetterPlainText = coverLetterText.textContent || '';
+
+// Split by double newlines to get paragraphs
+const paragraphs = coverLetterPlainText
+    .split(/\n\n+/)  // Split on paragraph breaks
+    .map(para => {
+        // Replace single newlines with &lt;br&gt; tags
+        const formatted = para.trim().replace(/\n/g, '&lt;br&gt;');
+        return formatted ? `&lt;p&gt;${formatted}&lt;/p&gt;` : '';
+    })
+    .filter(p => p)  // Remove empty paragraphs
+    .join('\n');
+
+printWindow.document.write(`
+    &lt;body&gt;
+        ${paragraphs}  // ✓ No heading, proper HTML formatting
+    &lt;/body&gt;
+`);</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Interactive Test</h2>
+            <p>Test the text-to-HTML conversion logic:</p>
+            
+            <div id="test-input-container">
+                <label><strong>Sample Cover Letter Text (with newlines):</strong></label>
+                <textarea id="sample-text" style="width: 100%; height: 200px; font-family: monospace; padding: 10px;">Dear Hiring Manager,
+
+I am writing to express my strong interest in the Platform Engineer position at LinuxRecruit. With my extensive background in DevOps and cloud infrastructure, I am confident I can contribute significantly to your team.
+
+My experience includes:
+- 5+ years in platform engineering
+- Expertise in Kubernetes and Docker
+- Strong background in CI/CD pipelines
+
+I am particularly excited about this opportunity because it aligns perfectly with my career goals and technical expertise.
+
+Thank you for considering my application. I look forward to discussing how I can contribute to your team.
+
+Sincerely,
+[Your Name]</textarea>
+            </div>
+            
+            <button onclick="testConversion()">🔄 Test Conversion</button>
+            <button onclick="showPDFPreview()">📄 Preview as PDF</button>
+            
+            <div class="comparison" id="comparison" style="display: none;">
+                <div>
+                    <h3>❌ Old Method (Broken)</h3>
+                    <div class="preview-box" id="old-preview"></div>
+                </div>
+                <div>
+                    <h3>✅ New Method (Fixed)</h3>
+                    <div class="preview-box" id="new-preview"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>✅ Expected PDF Output</h2>
+            <p>The PDF should now:</p>
+            <ul>
+                <li class="success">✓ Start directly with the cover letter content (no "Cover Letter" heading)</li>
+                <li class="success">✓ Have proper paragraph spacing (double newlines create new paragraphs)</li>
+                <li class="success">✓ Preserve line breaks within paragraphs (single newlines become &lt;br&gt; tags)</li>
+                <li class="success">✓ Have clean, professional formatting</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Testing Instructions</h2>
+            <ol>
+                <li><strong>Reload the extension</strong> in Chrome</li>
+                <li><strong>Navigate to a LinkedIn job</strong> page</li>
+                <li><strong>Open the side panel</strong> and generate a cover letter</li>
+                <li><strong>Click "Save as PDF"</strong></li>
+                <li><strong>Verify in the print preview:</strong>
+                    <ul>
+                        <li>No "Cover Letter" heading at the top</li>
+                        <li>Paragraphs are properly separated</li>
+                        <li>Line breaks are preserved</li>
+                        <li>Text is not all running together</li>
+                    </ul>
+                </li>
+                <li><strong>Save the PDF</strong> and open it to confirm formatting is correct</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function testConversion() {
+            const text = document.getElementById('sample-text').value;
+            const comparison = document.getElementById('comparison');
+            const oldPreview = document.getElementById('old-preview');
+            const newPreview = document.getElementById('new-preview');
+            
+            // Old method (broken) - just use innerHTML which doesn't preserve newlines
+            oldPreview.innerHTML = text;
+            
+            // New method (fixed) - convert newlines to HTML
+            const paragraphs = text
+                .split(/\n\n+/)
+                .map(para => {
+                    const formatted = para.trim().replace(/\n/g, '<br>');
+                    return formatted ? `<p>${formatted}</p>` : '';
+                })
+                .filter(p => p)
+                .join('\n');
+            
+            newPreview.innerHTML = paragraphs;
+            
+            comparison.style.display = 'grid';
+        }
+        
+        function showPDFPreview() {
+            const text = document.getElementById('sample-text').value;
+            
+            // Convert to HTML using the new method
+            const paragraphs = text
+                .split(/\n\n+/)
+                .map(para => {
+                    const formatted = para.trim().replace(/\n/g, '<br>');
+                    return formatted ? `<p>${formatted}</p>` : '';
+                })
+                .filter(p => p)
+                .join('\n');
+            
+            // Open in new window (simulating PDF preview)
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Cover Letter Preview</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            line-height: 1.6;
+                            max-width: 800px;
+                            margin: 40px auto;
+                            padding: 20px;
+                            color: #333;
+                        }
+                        p {
+                            margin-bottom: 16px;
+                            text-align: left;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${paragraphs}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    </script>
+</body>
+</html>
+

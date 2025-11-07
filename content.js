@@ -296,6 +296,13 @@ const extractJobDetails = async () => {
     const companyName = await waitForCompanyName(3000);
     console.log('[LinkedIn Scraper] Final company name:', companyName);
 
+    // Extract job title
+    const jobTitleEl = document.querySelector('.job-details-jobs-unified-top-card__job-title h1') ||
+                       document.querySelector('.jobs-unified-top-card__job-title h1') ||
+                       document.querySelector('.jobs-details-top-card__job-title h1');
+    const jobTitle = jobTitleEl ? jobTitleEl.textContent.trim() : '';
+    console.log('[LinkedIn Scraper] Job title:', jobTitle);
+
     // Trigger badge analysis for this job
     console.log('[Badge Scanner] Checking if should analyze job...');
     console.log('[Badge Scanner] - jobId:', jobId);
@@ -314,7 +321,8 @@ const extractJobDetails = async () => {
 
     return {
       text: cleaned,
-      companyName: companyName
+      companyName: companyName,
+      jobTitle: jobTitle
     };
   }
 
@@ -335,6 +343,7 @@ const sendJobDataToSidePanel = (jobData) => {
     data: {
       text: jobData.text,
       companyName: jobData.companyName,
+      jobTitle: jobData.jobTitle,
       url: window.location.href,
       timestamp: Date.now()
     }
@@ -475,6 +484,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         data: jobData ? {
           text: jobData.text,
           companyName: jobData.companyName,
+          jobTitle: jobData.jobTitle,
           url: window.location.href,
           timestamp: Date.now()
         } : null
@@ -649,9 +659,21 @@ const checkVisaSponsorship = async (jobText, companyName) => {
     try {
       const matches = await searchCompaniesInIndexedDB(companyName);
       if (matches && matches.length > 0) {
+        const topMatch = matches[0];
+        const confidence = topMatch.confidence || topMatch.matchScore || 100;
         console.log(`[Badge Scanner] ✓ Company found in CSV database with ${matches.length} matches`);
-        console.log(`[Badge Scanner] Top match: ${matches[0]['Organisation Name']}`);
-        return true;
+        console.log(`[Badge Scanner] Top match: ${topMatch['Organisation Name']} (confidence: ${confidence}%)`);
+
+        // Return object with confidence score and all matches for side panel display
+        return {
+          found: true,
+          confidence: confidence,
+          matchedName: topMatch['Organisation Name'],
+          allMatches: matches.slice(0, 5).map(m => ({
+            name: m['Organisation Name'],
+            score: m.confidence || m.matchScore
+          }))
+        };
       } else {
         console.log(`[Badge Scanner] Company not found in CSV database`);
       }
@@ -662,7 +684,7 @@ const checkVisaSponsorship = async (jobText, companyName) => {
     console.log(`[Badge Scanner] No company name provided for CSV check`);
   }
 
-  return false;
+  return { found: false, confidence: 0, allMatches: [] };
 };
 
 // Check which keywords are present in job description
@@ -695,10 +717,19 @@ const analyzeCurrentJobAndUpdateBadges = async (jobId, jobDescription) => {
 
   // Check visa sponsorship
   if (badgeSettings.visaBadgeEnabled) {
-    const hasVisa = await checkVisaSponsorship(jobDescription, companyName);
-    console.log(`[Badge Scanner] Visa sponsorship check: ${hasVisa}`);
-    if (hasVisa) {
-      badges.push({ text: '✓ Visa', color: '#f44336', isVisa: true }); // RED color for visibility
+    const visaResult = await checkVisaSponsorship(jobDescription, companyName);
+    console.log(`[Badge Scanner] Visa sponsorship check:`, visaResult);
+    if (visaResult.found) {
+      // Always show "✓ Visa" without percentage on badges
+      // Detailed match info will be shown in side panel
+      badges.push({
+        text: '✓ Visa',
+        color: '#f44336',
+        isVisa: true,
+        confidence: visaResult.confidence,
+        matchedName: visaResult.matchedName,
+        allMatches: visaResult.allMatches || [] // Store all matches for side panel
+      });
     }
   }
 
@@ -729,10 +760,9 @@ const analyzeCurrentJobAndUpdateBadges = async (jobId, jobDescription) => {
     console.log(`[Badge Scanner] ✗ Could not find card for job ${jobId}`);
   }
 
-  // Also add badges to job details panel (right side)
-  if (badges.length > 0) {
-    await addBadgesToJobDetailsPanel(jobId, badges);
-  }
+  // Always update badges in job details panel (right side)
+  // This ensures old badges are cleared even when there are no new badges
+  await addBadgesToJobDetailsPanel(jobId, badges);
 
   console.log(`[Badge Scanner] ========================================`);
 };
@@ -1183,9 +1213,18 @@ const scanJobCardInBackground = async (card, forceRescan = false) => {
 
   // Check visa sponsorship
   if (badgeSettings.visaBadgeEnabled) {
-    const hasVisa = await checkVisaSponsorship(jobDescription, companyName);
-    if (hasVisa) {
-      badges.push({ text: '✓ Visa', color: '#f44336', isVisa: true }); // RED color for visibility
+    const visaResult = await checkVisaSponsorship(jobDescription, companyName);
+    if (visaResult.found) {
+      // Always show "✓ Visa" without percentage on badges
+      // Detailed match info will be shown in side panel
+      badges.push({
+        text: '✓ Visa',
+        color: '#f44336',
+        isVisa: true,
+        confidence: visaResult.confidence,
+        matchedName: visaResult.matchedName,
+        allMatches: visaResult.allMatches || [] // Store all matches for side panel
+      });
     }
   }
 
@@ -1576,19 +1615,26 @@ const autoScrollJobList = async () => {
 
 // Add badges to job details panel (right side)
 const addBadgesToJobDetailsPanel = async (jobId, badges) => {
-  console.log(`[Badge Scanner] Adding badges to job details panel for job ${jobId}`);
+  console.log(`[Badge Scanner] Adding badges to job details panel for job ${jobId} (${badges.length} badges)`);
+
+  // Remove existing badge container if present
+  const existingContainer = document.querySelector('.linkedin-job-badges-details');
+  if (existingContainer) {
+    existingContainer.remove();
+    console.log('[Badge Scanner] Removed existing badge container');
+  }
+
+  // If no badges, just return after clearing
+  if (badges.length === 0) {
+    console.log('[Badge Scanner] No badges to add, container cleared');
+    return;
+  }
 
   // Find the primary description container
   const primaryDescContainer = document.querySelector('.job-details-jobs-unified-top-card__primary-description-container');
   if (!primaryDescContainer) {
     console.log('[Badge Scanner] Primary description container not found');
     return;
-  }
-
-  // Remove existing badge container if present (search in parent)
-  const existingContainer = document.querySelector('.linkedin-job-badges-details');
-  if (existingContainer) {
-    existingContainer.remove();
   }
 
   // Create badge container

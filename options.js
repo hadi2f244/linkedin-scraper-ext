@@ -20,6 +20,7 @@
     const copilotAuthBtn = document.getElementById('copilot-auth-btn');
     const copilotLogoutBtn = document.getElementById('copilot-logout-btn');
     const copilotStatusText = document.getElementById('copilot-status-text');
+    const coverLetterPromptEl = document.getElementById('cover-letter-prompt');
 
     // Initialize Copilot Auth
     const copilotAuth = new CopilotAuth();
@@ -265,7 +266,8 @@
         'RESUME_UPLOAD_DATE',
         'ENABLE_BADGE_SCANNER',
         'ENABLE_VISA_BADGE',
-        'BADGE_KEYWORDS'
+        'BADGE_KEYWORDS',
+        'COVER_LETTER_PROMPT'
     ]);
 
     // Set AI provider
@@ -324,6 +326,34 @@
     } else {
         // Set default badge keywords - all GREEN for easy visibility
         badgeKeywordsEl.value = 'kubernetes|#4caf50\ndocker|#4caf50\npython|#4caf50\naws|#4caf50';
+    }
+
+    // Cover letter prompt
+    if (settings.COVER_LETTER_PROMPT) {
+        coverLetterPromptEl.value = settings.COVER_LETTER_PROMPT;
+    } else {
+        // Set default cover letter prompt with variables
+        coverLetterPromptEl.value = `You are a professional career advisor. Based on the following resume and job description, write a compelling, professional cover letter.
+
+RESUME:
+{resume}
+
+JOB TITLE: {job_title}
+COMPANY: {company_name}
+
+JOB DESCRIPTION:
+{job_description}
+
+Please write a cover letter that:
+1. Is professional and well-structured
+2. Highlights relevant experience from the resume that matches the job requirements
+3. Shows genuine enthusiasm for the position
+4. Is concise (around 300-400 words)
+5. Follows standard cover letter format (greeting, body paragraphs, closing)
+6. Uses a confident but not arrogant tone
+7. Addresses specific requirements mentioned in the job description
+
+Write only the cover letter text, without any additional commentary or explanations.`;
     }
 
     // Display resume status
@@ -483,7 +513,8 @@
             BAD_KEYWORDS: badKeywordsEl.value.trim(),
             ENABLE_BADGE_SCANNER: enableBadgeScannerEl.checked,
             ENABLE_VISA_BADGE: enableVisaBadgeEl.checked,
-            BADGE_KEYWORDS: badgeKeywordsEl.value.trim()
+            BADGE_KEYWORDS: badgeKeywordsEl.value.trim(),
+            COVER_LETTER_PROMPT: coverLetterPromptEl.value.trim()
         };
 
         console.log('Saving settings:', {

@@ -425,10 +425,14 @@ Please write a cover letter that:
 1. Is professional and well-structured
 2. Highlights relevant experience from the resume that matches the job requirements
 3. Shows genuine enthusiasm for the position
-4. Is concise (around 300-400 words)
+4. Is concise (around 200-300 words)
 5. Follows standard cover letter format (greeting, body paragraphs, closing)
 6. Uses a confident but not arrogant tone
 7. Addresses specific requirements mentioned in the job description
+8. Do not mention the skills that are not mentioned in job description
+9. Use technical keywords (specially technical ones)
+9. Try to be direct and use simple words. It must not seemed that be written by an AI.
+10. DO NOT FOCUS ALOT on JOB DESCRIPTION. IT SEEMS that i just wrote it from job description. focus on my experiences in my resume that related to job descriptions. If my experience is not related to job description do not mention it. you can use keywords to check that they are related or not. 
 
 Write only the cover letter text, without any additional commentary or explanations.`;
     }

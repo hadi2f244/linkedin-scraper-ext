@@ -694,6 +694,33 @@
     };
 
     // Display job data in the side panel
+    // Helper function to highlight keywords in text
+    const highlightKeywordsInText = (text, keywords, color) => {
+        if (!text || !keywords || keywords.length === 0) return text;
+
+        let highlightedText = text;
+
+        // Sort keywords by length (longest first) to avoid partial matches
+        const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
+
+        for (const keyword of sortedKeywords) {
+            if (!keyword || keyword.trim().length === 0) continue;
+
+            // Escape special regex characters
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            // Create case-insensitive regex with word boundaries
+            const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+
+            // Replace with highlighted version
+            highlightedText = highlightedText.replace(regex,
+                `<mark style="background-color: ${color}; color: white; padding: 2px 4px; border-radius: 3px; font-weight: 600;">$1</mark>`
+            );
+        }
+
+        return highlightedText;
+    };
+
     const displayJobData = async (jobData) => {
         // Handle both old format (string) and new format (object)
         let jobText, companyName, jobTitle, companyUrl;
@@ -724,12 +751,86 @@
 
         setStatus('Job data loaded ✓');
 
-        // Show raw text in expandable section
+        // Get all settings to determine which keywords to highlight
+        const allSettings = await chrome.storage.local.get([
+            'ENABLE_BADGE_SCANNER',
+            'ENABLE_VISA_BADGE',
+            'BADGE_KEYWORDS',
+            'SEARCH_KEYWORDS',
+            'BAD_KEYWORDS'
+        ]);
+
+        // Collect keywords to highlight
+        const keywordsToHighlight = [];
+
+        // Add custom badge keywords
+        if (allSettings.BADGE_KEYWORDS) {
+            const lines = allSettings.BADGE_KEYWORDS.split('\n');
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed) {
+                    const parts = trimmed.split('|');
+                    const keyword = parts[0]?.trim();
+                    const color = parts[1]?.trim() || '#2196f3';
+                    if (keyword) {
+                        keywordsToHighlight.push({ keyword, color });
+                    }
+                }
+            }
+        }
+
+        // Add visa sponsorship keywords if enabled
+        if (allSettings.ENABLE_VISA_BADGE !== false) {
+            const visaKeywords = [
+                'visa sponsorship',
+                'visa sponsor',
+                'sponsorship available',
+                'will sponsor',
+                'can sponsor',
+                'sponsorship provided',
+                'h1b',
+                'h-1b',
+                'work authorization',
+                'right to work'
+            ];
+            visaKeywords.forEach(keyword => {
+                keywordsToHighlight.push({ keyword, color: '#f44336' }); // Red for visa keywords
+            });
+
+            // Also highlight company name if it matches visa sponsor
+            if (companyName && companyName.trim()) {
+                keywordsToHighlight.push({ keyword: companyName, color: '#f44336' });
+            }
+        }
+
+        // Add search keywords (good keywords) in green
+        if (allSettings.SEARCH_KEYWORDS && allSettings.SEARCH_KEYWORDS.trim()) {
+            const searchKeywordList = allSettings.SEARCH_KEYWORDS.split(',').map(k => k.trim()).filter(k => k);
+            searchKeywordList.forEach(keyword => {
+                keywordsToHighlight.push({ keyword, color: '#4caf50' }); // Green for good keywords
+            });
+        }
+
+        // Add bad keywords in orange/red
+        if (allSettings.BAD_KEYWORDS && allSettings.BAD_KEYWORDS.trim()) {
+            const badKeywordList = allSettings.BAD_KEYWORDS.split(',').map(k => k.trim()).filter(k => k);
+            badKeywordList.forEach(keyword => {
+                keywordsToHighlight.push({ keyword, color: '#ff9800' }); // Orange for bad keywords
+            });
+        }
+
+        // Apply highlighting to job text
+        let highlightedText = currentJobText;
+        for (const { keyword, color } of keywordsToHighlight) {
+            highlightedText = highlightKeywordsInText(highlightedText, [keyword], color);
+        }
+
+        // Show raw text in expandable section with highlighting
         rawTextContainer.style.display = 'block';
         rawTextContainer.classList.add('collapsed');
         rawTextContainer.classList.remove('expanded');
-        rawTextPreview.textContent = currentJobText;
-        rawTextFull.textContent = currentJobText;
+        rawTextPreview.innerHTML = highlightedText; // Use innerHTML for highlights
+        rawTextFull.innerHTML = highlightedText; // Use innerHTML for highlights
         readMoreBtn.textContent = 'Read more';
 
         sendBtn.disabled = false;

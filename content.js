@@ -403,6 +403,8 @@ const setupObserver = () => {
     clearTimeout(window.jobCheckTimeout);
     window.jobCheckTimeout = setTimeout(() => {
       checkAndSendJobDetails();
+      // Also highlight keywords on the page
+      highlightKeywordsOnPage();
     }, 500);
   };
 
@@ -418,7 +420,11 @@ const init = () => {
   console.log('LinkedIn Job Scraper content script loaded');
 
   // Check immediately
-  setTimeout(checkAndSendJobDetails, 1000);
+  setTimeout(() => {
+    checkAndSendJobDetails();
+    // Highlight keywords on initial load
+    highlightKeywordsOnPage();
+  }, 1000);
 
   // Set up observer for future changes
   setupObserver();
@@ -1730,6 +1736,227 @@ const addBadgesToJobDetailsPanel = async (jobId, badges) => {
     primaryDescContainer.parentNode.insertBefore(badgeContainer, primaryDescContainer.nextSibling);
     console.log(`[Badge Scanner] ✓ Added ${badges.length} badges after primary description container (fallback)`);
   }
+};
+
+// ============================================
+// KEYWORD HIGHLIGHTING ON LINKEDIN PAGE
+// ============================================
+
+// Helper function to escape regex special characters
+const escapeRegex = (str) => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// Helper function to create a text node walker
+const createTextNodeWalker = (root) => {
+  return document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node) => {
+        // Skip if parent is already a highlight mark
+        if (node.parentElement?.tagName === 'MARK' && node.parentElement?.classList.contains('linkedin-keyword-highlight')) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        // Skip if parent is a script or style tag
+        if (node.parentElement?.tagName === 'SCRIPT' || node.parentElement?.tagName === 'STYLE') {
+          return NodeFilter.FILTER_REJECT;
+        }
+        // Only accept text nodes with actual content
+        if (node.textContent.trim().length > 0) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_REJECT;
+      }
+    }
+  );
+};
+
+// Highlight keywords in the LinkedIn job description
+const highlightKeywordsOnPage = async () => {
+  console.log('[Keyword Highlighter] Starting keyword highlighting on LinkedIn page...');
+
+  // Find the job description container
+  const jobDescContainer = document.querySelector('.jobs-description__content') ||
+                           document.querySelector('.jobs-box__html-content') ||
+                           document.querySelector('.jobs-description') ||
+                           document.querySelector('article.jobs-description__container');
+
+  if (!jobDescContainer) {
+    console.log('[Keyword Highlighter] Job description container not found');
+    return;
+  }
+
+  // Remove any existing highlights
+  const existingHighlights = jobDescContainer.querySelectorAll('mark.linkedin-keyword-highlight');
+  existingHighlights.forEach(mark => {
+    const parent = mark.parentNode;
+    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+    parent.normalize(); // Merge adjacent text nodes
+  });
+
+  // Get all keyword settings
+  const settings = await chrome.storage.local.get([
+    'ENABLE_BADGE_SCANNER',
+    'ENABLE_VISA_BADGE',
+    'BADGE_KEYWORDS',
+    'SEARCH_KEYWORDS',
+    'BAD_KEYWORDS'
+  ]);
+
+  // Collect all keywords to highlight with their colors
+  const keywordsToHighlight = [];
+
+  // Add custom badge keywords
+  if (settings.BADGE_KEYWORDS) {
+    const lines = settings.BADGE_KEYWORDS.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        const parts = trimmed.split('|');
+        const keyword = parts[0]?.trim();
+        const color = parts[1]?.trim() || '#2196f3';
+        if (keyword) {
+          keywordsToHighlight.push({ keyword, color, priority: 3 });
+        }
+      }
+    }
+  }
+
+  // Add visa sponsorship keywords if enabled
+  if (settings.ENABLE_VISA_BADGE !== false) {
+    const visaKeywords = [
+      'visa sponsorship',
+      'visa sponsor',
+      'sponsorship available',
+      'will sponsor',
+      'can sponsor',
+      'sponsorship provided',
+      'h1b',
+      'h-1b',
+      'work authorization',
+      'right to work'
+    ];
+    visaKeywords.forEach(keyword => {
+      keywordsToHighlight.push({ keyword, color: '#f44336', priority: 4 }); // Red for visa keywords
+    });
+  }
+
+  // Add search keywords (good keywords) in green
+  if (settings.SEARCH_KEYWORDS && settings.SEARCH_KEYWORDS.trim()) {
+    const searchKeywordList = settings.SEARCH_KEYWORDS.split(',').map(k => k.trim()).filter(k => k);
+    searchKeywordList.forEach(keyword => {
+      keywordsToHighlight.push({ keyword, color: '#4caf50', priority: 2 }); // Green for good keywords
+    });
+  }
+
+  // Add bad keywords in orange
+  if (settings.BAD_KEYWORDS && settings.BAD_KEYWORDS.trim()) {
+    const badKeywordList = settings.BAD_KEYWORDS.split(',').map(k => k.trim()).filter(k => k);
+    badKeywordList.forEach(keyword => {
+      keywordsToHighlight.push({ keyword, color: '#ff9800', priority: 1 }); // Orange for bad keywords
+    });
+  }
+
+  if (keywordsToHighlight.length === 0) {
+    console.log('[Keyword Highlighter] No keywords to highlight');
+    return;
+  }
+
+  // Sort keywords by length (longest first) to avoid partial matches
+  keywordsToHighlight.sort((a, b) => b.keyword.length - a.keyword.length);
+
+  console.log(`[Keyword Highlighter] Highlighting ${keywordsToHighlight.length} keywords`);
+
+  // Apply highlights
+  const walker = createTextNodeWalker(jobDescContainer);
+  const nodesToProcess = [];
+
+  let node;
+  while (node = walker.nextNode()) {
+    nodesToProcess.push(node);
+  }
+
+  for (const textNode of nodesToProcess) {
+    let text = textNode.textContent;
+    let hasMatch = false;
+    const fragments = [];
+    let lastIndex = 0;
+
+    // Find all matches in this text node
+    const matches = [];
+    for (const { keyword, color, priority } of keywordsToHighlight) {
+      const regex = new RegExp(escapeRegex(keyword), 'gi');
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        matches.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          text: match[0],
+          color,
+          priority
+        });
+      }
+    }
+
+    if (matches.length === 0) continue;
+
+    // Sort matches by position
+    matches.sort((a, b) => a.start - b.start);
+
+    // Remove overlapping matches (keep higher priority)
+    const filteredMatches = [];
+    for (const match of matches) {
+      const overlaps = filteredMatches.some(existing =>
+        (match.start >= existing.start && match.start < existing.end) ||
+        (match.end > existing.start && match.end <= existing.end)
+      );
+      if (!overlaps) {
+        filteredMatches.push(match);
+      }
+    }
+
+    // Create document fragments with highlights
+    for (const match of filteredMatches) {
+      // Add text before match
+      if (match.start > lastIndex) {
+        fragments.push(document.createTextNode(text.substring(lastIndex, match.start)));
+      }
+
+      // Add highlighted match
+      const mark = document.createElement('mark');
+      mark.className = 'linkedin-keyword-highlight';
+      mark.style.cssText = `
+        background-color: ${match.color};
+        color: white;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-weight: 600;
+      `;
+      mark.textContent = match.text;
+      fragments.push(mark);
+
+      lastIndex = match.end;
+      hasMatch = true;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      fragments.push(document.createTextNode(text.substring(lastIndex)));
+    }
+
+    // Replace the text node with fragments
+    if (hasMatch) {
+      const parent = textNode.parentNode;
+      const nextSibling = textNode.nextSibling;
+      parent.removeChild(textNode);
+      fragments.forEach(fragment => {
+        parent.insertBefore(fragment, nextSibling);
+      });
+    }
+  }
+
+  console.log('[Keyword Highlighter] ✓ Keyword highlighting complete');
 };
 
 // Initialize badge scanner after main init

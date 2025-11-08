@@ -447,7 +447,7 @@ Write only the cover letter text, without any additional commentary or explanati
     } else {
         // Set default application questions with good prompts
         questions = [
-            { question: 'Why do you want to work here?', prompt: 'Based on the job description for {job_title} at {company_name} and my resume, explain why I\'m genuinely interested in this role and company. Be specific about what excites me about the company\'s mission, products, or culture. Keep it concise (2-3 sentences).' },
+            { question: 'Why do you want to work here?', prompt: 'Based on the job description for {job_title} at {company_name} and my resume, explain why I\'m genuinely interested in this role and company. Be specific about what excites me about the company\'s mission, products, or culture. Keep it concise (2-3 sentences). Do not mention the company goals too much Just mention the skills mentioned in job description. Resume: ```{resume}``` Job Description: ```{job_description}```' },
             { question: 'What are your salary expectations?', prompt: 'Based on the job title "{job_title}" and my experience level shown in my resume, suggest a reasonable salary range for this position in the UK market. Be professional and data-driven.' },
             { question: 'What are your strengths?', prompt: 'Based on my resume and the requirements in the job description for {job_title}, identify my top 3-4 strengths that are most relevant to this role. Provide specific examples from my experience.' },
             { question: 'What are your weaknesses?', prompt: 'Provide 1-2 honest but professional weaknesses that won\'t disqualify me for {job_title}. Frame them as areas I\'m actively working to improve, with specific steps I\'m taking.' },

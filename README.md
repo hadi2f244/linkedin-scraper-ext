@@ -10,11 +10,15 @@
 
 ## ✨ Key Features
 
-🎯 **Auto-Scraping** — Side panel opens automatically, updates in real-time as you browse jobs  
-🔍 **Visa Sponsorship** — Check UK work visa eligibility instantly (supports 12MB+ CSV files)  
-🎯 **Keyword Search** — Highlight must-have skills (CI/CD, Kubernetes, Python, etc.)  
-🤖 **AI Summaries** — Get structured job analysis via ChatGPT  
-⚡ **Smart Matching** — Handles company name variations and abbreviations  
+🎯 **Auto-Scraping** — Side panel opens automatically, updates in real-time as you browse jobs
+🔍 **Visa Sponsorship** — Check UK work visa eligibility instantly (supports 12MB+ CSV files)
+🎯 **Keyword Highlighting** — Highlight keywords directly on LinkedIn page and in side panel
+🏷️ **Badge Scanner** — Auto-scan job listings and display colored badges for quick filtering
+🤖 **AI Summaries** — Get structured job analysis via OpenAI, GitHub Copilot, Groq, or Hugging Face
+📄 **Cover Letter Generator** — AI-powered cover letters tailored to each job
+❓ **Q&A Auto-Responder** — Generate answers to application questions automatically
+🏢 **Company Research** — Auto-research companies with AI-powered summaries
+⚡ **Smart Matching** — Fuzzy algorithm handles company name variations and abbreviations
 
 ---
 
@@ -22,9 +26,14 @@
 
 1. Browse LinkedIn jobs → Side panel opens automatically
 2. Click any job → Instant results:
+   - 🏷️ **Badges on job cards** - "kubernetes", "docker", "Visa Sponsor"
+   - 🎨 **Keywords highlighted** - Green for good, orange for bad, directly on LinkedIn page
    - ✅ **Visa sponsor?** "Barclays - Found in UK register!"
    - ✅ **Keywords?** "kubernetes ✅, python ✅, gcp ❌"
    - 🤖 **AI Summary** "Skills: 5+ years DevOps, AWS, Terraform..."
+   - 📄 **Cover Letter** - Generate tailored cover letter with one click
+   - ❓ **Q&A** - Auto-answer "Why do you want to work here?"
+   - 🏢 **Company Research** - AI-powered company analysis
 
 ---
 
@@ -45,10 +54,26 @@ git clone https://github.com/hadi2f244/linkedin-scraper-ext
 
 Right-click extension → **Options**:
 
-- **API Key** (optional): Add OpenAI key for AI summaries
-- **Keywords** (optional): `kubernetes, CI/CD, python, aws, docker`
-- **CSV File** (optional): [Download UK Visa Sponsors CSV](https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers)
-- **Auto-send** (optional): Check to auto-generate AI summaries
+**🔧 General Tab:**
+- **AI Provider**: Choose OpenAI, GitHub Copilot, Groq, or Hugging Face
+- **API Key** (if using OpenAI): Add your OpenAI API key
+- **Keywords**: `kubernetes, CI/CD, python, aws, docker`
+- **Bad Keywords**: `Azure, relocation required, on-site only`
+- **Badge Keywords**: `kubernetes|#4caf50` (one per line)
+- **CSV File**: [Download UK Visa Sponsors CSV](https://www.gov.uk/government/publications/register-of-licensed-sponsors-workers)
+
+**📄 Cover Letter Tab:**
+- Upload your resume (PDF)
+- Customize cover letter prompt template
+
+**❓ Q&A Tab:**
+- Add common application questions
+- Configure AI prompts for each question
+
+**🏢 Company Research Tab:**
+- Customize research prompt
+- Enable/disable data sources
+- Configure auto-research
 
 ### 3. Use It!
 
@@ -97,21 +122,27 @@ AI Summary:
 
 ## 📚 Documentation
 
+- **[Complete Feature List](docs/FEATURES.md)** — Comprehensive overview of all features
 - **[Full Documentation](docs/README.md)** — Complete guide with all features
 - **[Installation Guide](docs/installation.md)** — Detailed setup instructions
 - **[Visa Sponsorship Guide](docs/visa-sponsorship.md)** — How the checker works
+- **[GitHub Copilot Integration](docs/copilot-integration.md)** — Setup guide for Copilot
+- **[Prompt Examples](docs/prompt-examples.md)** — Example prompts for AI features
 - **[Troubleshooting](docs/troubleshooting.md)** — Common issues and solutions
-- **[API Reference](docs/api-reference.md)** — Technical details
+- **[Contributing](docs/CONTRIBUTING.md)** — How to contribute to the project
 
 ---
 
 ## 🛠️ Tech Stack
 
-- Chrome Extension (Manifest V3)
-- Side Panel API
-- IndexedDB (for large CSV storage)
-- ChatGPT API integration
-- Smart fuzzy matching algorithm
+- **Chrome Extension** (Manifest V3)
+- **Side Panel API** - Modern Chrome extension UI
+- **IndexedDB** - Large CSV storage (12MB+)
+- **AI Integration** - OpenAI, GitHub Copilot, Groq, Hugging Face
+- **PDF.js** - Resume parsing and PDF generation
+- **Fuzzy Matching** - Levenshtein distance algorithm
+- **MutationObserver** - Real-time page monitoring
+- **OAuth Device Flow** - GitHub Copilot authentication
 
 ---
 

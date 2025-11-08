@@ -1,4 +1,56 @@
-// Side panel script for LinkedIn Job Scraper Extension
+/**
+ * LinkedIn Job Scraper Extension - Side Panel Script
+ *
+ * This script manages the side panel UI and provides:
+ *
+ * 1. Job Details Tab:
+ *    - Displays job description with keyword highlighting
+ *    - Shows visa sponsorship check results
+ *    - Displays keyword search results (good and bad keywords)
+ *    - Sends job data to AI for summarization
+ *    - Expandable job text with "Read more" functionality
+ *
+ * 2. Cover Letter Tab:
+ *    - Generates AI-powered cover letters
+ *    - Supports variable replacement (job_title, company_name, etc.)
+ *    - Editable cover letter output
+ *    - PDF export with automatic filename
+ *    - Copy to clipboard functionality
+ *
+ * 3. Q&A Tab:
+ *    - Displays configured application questions
+ *    - Generates AI-powered answers for each question
+ *    - Supports variable replacement including {company_research}
+ *    - Copy answers to clipboard
+ *
+ * 4. Company Research Tab:
+ *    - Researches companies from multiple sources
+ *    - AI-powered summarization with custom prompts
+ *    - Manual content fallback for anti-bot protection
+ *    - 24-hour caching with force refresh option
+ *    - Displays raw research data
+ *
+ * 5. Visa Sponsorship Checker:
+ *    - Fuzzy matching algorithm with Levenshtein distance
+ *    - Searches IndexedDB for UK visa sponsors
+ *    - Displays top 5 matches with quality indicators
+ *    - Manual company name editing and re-search
+ *
+ * 6. Keyword Features:
+ *    - Text highlighting in side panel
+ *    - Multiple keyword types (badge, visa, search, bad)
+ *    - Color-coded highlights
+ *    - Visual indicators (✅/❌)
+ *
+ * 7. AI Integration:
+ *    - Supports OpenAI, GitHub Copilot, Groq, Hugging Face
+ *    - Streaming responses for real-time output
+ *    - Abort controllers for canceling requests
+ *    - Error handling with provider-specific messages
+ *
+ * @version 1.0.0
+ * @author LinkedIn Job Scraper Extension
+ */
 
 (async () => {
     const $ = (s) => document.querySelector(s);

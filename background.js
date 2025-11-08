@@ -1,4 +1,39 @@
-// Background service worker for LinkedIn Job Scraper Extension
+/**
+ * LinkedIn Job Scraper Extension - Background Service Worker
+ *
+ * This service worker handles:
+ *
+ * 1. Side Panel Management:
+ *    - Auto-opens side panel when browsing LinkedIn jobs
+ *    - Handles extension icon clicks
+ *
+ * 2. Message Routing:
+ *    - Routes messages between content script and side panel
+ *    - Handles RESEARCH_COMPANY requests
+ *    - Manages tab-based content extraction
+ *
+ * 3. Company Research:
+ *    - Extracts content from LinkedIn company pages
+ *    - Extracts content from company websites
+ *    - Extracts content from custom URLs
+ *    - Implements intelligent 10-step text extraction
+ *    - Manages 24-hour cache with TTL
+ *
+ * 4. AI Integration:
+ *    - Supports OpenAI, GitHub Copilot, Groq, Hugging Face
+ *    - Handles AI-powered company research summarization
+ *    - Variable replacement in prompts
+ *    - Error handling for AI provider failures
+ *
+ * 5. Tab Management:
+ *    - Opens URLs in background tabs for content extraction
+ *    - Injects scripts to extract page content
+ *    - Closes tabs after extraction
+ *    - Handles anti-bot protection with manual fallback
+ *
+ * @version 1.0.0
+ * @author LinkedIn Job Scraper Extension
+ */
 
 // Import CopilotAuth for GitHub Copilot support
 importScripts('copilot-auth.js');

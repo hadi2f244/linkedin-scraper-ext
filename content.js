@@ -1,5 +1,33 @@
-// Content script for LinkedIn job pages
-// Monitors job details and sends updates to the side panel
+/**
+ * LinkedIn Job Scraper Extension - Content Script
+ *
+ * This script runs on LinkedIn job pages and provides the following functionality:
+ *
+ * 1. Job Data Extraction:
+ *    - Monitors LinkedIn job pages for changes using MutationObserver
+ *    - Extracts job description, company name, and job URL
+ *    - Sends job data to side panel via Chrome messaging API
+ *
+ * 2. Badge Scanner:
+ *    - Automatically scans job listings in the left panel
+ *    - Displays colored badges for keywords (e.g., "kubernetes", "docker")
+ *    - Shows visa sponsorship badge when keywords detected
+ *    - Background scanning with progressive loading
+ *
+ * 3. Keyword Highlighting:
+ *    - Highlights keywords directly on the LinkedIn job description
+ *    - Supports multiple keyword types: badge, visa, search (good), bad
+ *    - Color-coded highlights for visual filtering
+ *    - Smart matching to avoid partial matches
+ *
+ * 4. Company Name Detection:
+ *    - Extracts company name from job posting
+ *    - Normalizes company names for fuzzy matching
+ *    - Handles variations and abbreviations
+ *
+ * @version 1.0.0
+ * @author LinkedIn Job Scraper Extension
+ */
 
 console.log('[Content Script] ========================================');
 console.log('[Content Script] LinkedIn Job Scraper Extension Loading...');

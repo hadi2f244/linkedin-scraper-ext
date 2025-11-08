@@ -87,14 +87,60 @@
             <p style="color: #666; font-size: 13px; line-height: 1.5; margin-bottom: 12px;">
                 Automatically gather company information from LinkedIn company page, job description, and company website.
             </p>
+
+            <!-- Custom URLs Section -->
+            <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 4px;">
+                <label for="custom-urls-input" style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px;">
+                    Additional URLs (optional, one per line):
+                </label>
+                <textarea
+                    id="custom-urls-input"
+                    placeholder="https://company.com/about&#10;https://company.com/blog/our-mission&#10;https://company.com/team"
+                    style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 12px; resize: vertical;"
+                ></textarea>
+                <div style="margin-top: 8px; display: flex; gap: 8px;">
+                    <button id="clear-custom-urls-btn" class="copy-btn" style="font-size: 12px; padding: 6px 12px;">🗑️ Clear URLs</button>
+                    <span style="font-size: 11px; color: #666; line-height: 32px;">Add blog posts, press releases, or other relevant pages</span>
+                </div>
+            </div>
+
+            <!-- Manual Content Section (Fallback for blocked websites) -->
+            <div style="margin-bottom: 16px; padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <label for="manual-content-input" style="font-weight: 600; font-size: 13px; flex: 1;">
+                        💡 Manual Content (if websites are blocked):
+                    </label>
+                    <button id="toggle-manual-content" class="copy-btn" style="font-size: 11px; padding: 4px 8px;">Show/Hide</button>
+                </div>
+                <div id="manual-content-section" style="display: none;">
+                    <p style="font-size: 11px; color: #856404; margin-bottom: 8px; line-height: 1.4;">
+                        If automated fetching fails (timeouts, anti-bot protection), manually copy company information from their website and paste it here:
+                    </p>
+                    <textarea
+                        id="manual-content-input"
+                        placeholder="Paste company description, about us, mission statement, etc. from the company's website..."
+                        style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; font-family: inherit; font-size: 12px; resize: vertical;"
+                    ></textarea>
+                    <div style="margin-top: 8px; display: flex; gap: 8px;">
+                        <button id="clear-manual-content-btn" class="copy-btn" style="font-size: 12px; padding: 6px 12px;">🗑️ Clear</button>
+                        <span style="font-size: 11px; color: #856404; line-height: 32px;">This content will be included in the research results</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="button-group">
                 <button id="research-company-btn" class="copy-btn" disabled>🔍 Research Company</button>
-                <button id="refresh-research-btn" class="copy-btn" style="display: none;">🔄 Refresh Research</button>
             </div>
         </div>
 
         <div id="company-research-status" class="muted" style="margin-bottom: 12px;">
             <span id="company-research-status-text"></span>
+        </div>
+
+        <div id="company-research-progress" style="display: none; margin-bottom: 12px; padding: 12px; background: #e3f2fd; border-radius: 4px; font-size: 12px;">
+            <div id="progress-linkedin" style="margin-bottom: 4px;">⏳ Fetching LinkedIn company page...</div>
+            <div id="progress-website" style="margin-bottom: 4px;">⏳ Fetching company website...</div>
+            <div id="progress-custom" style="margin-bottom: 4px;">⏳ Fetching custom URLs...</div>
         </div>
 
         <div id="company-research-result" style="display: none;">
@@ -105,7 +151,8 @@
                 <div id="company-research-content" style="color: #333; line-height: 1.6; white-space: pre-wrap; font-size: 13px;"></div>
             </div>
             <div style="font-size: 11px; color: #999; margin-top: 8px;">
-                <span id="company-research-timestamp"></span>
+                <div id="company-research-sources" style="margin-bottom: 4px;"></div>
+                <div id="company-research-timestamp"></div>
             </div>
         </div>
 

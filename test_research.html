@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Company Research</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #log {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #ccc;
+        }
+        .log-info { border-left-color: #2196F3; }
+        .log-success { border-left-color: #4CAF50; }
+        .log-error { border-left-color: #f44336; }
+        .log-warning { border-left-color: #ff9800; }
+    </style>
+</head>
+<body>
+    <h1>Company Research Debug Tool</h1>
+    
+    <div>
+        <h2>Test Controls</h2>
+        <button onclick="clearCache()">Clear Cache</button>
+        <button onclick="testResearch()">Test Research</button>
+        <button onclick="checkStorage()">Check Storage</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div>
+        <h2>Custom URLs (one per line)</h2>
+        <textarea id="customUrls" rows="5" style="width: 100%; font-family: monospace;">https://www.linkedin.com/company/vertex-agility-ltd/
+https://www.vertexagility.com/
+https://www.vertexagility.com/who-are-we/</textarea>
+    </div>
+
+    <div id="log"></div>
+
+    <script>
+        const logDiv = document.getElementById('log');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+
+        async function clearCache() {
+            log('Clearing cache for Vertex Agility...', 'info');
+            await chrome.storage.local.remove('COMPANY_RESEARCH_Vertex Agility');
+            log('Cache cleared!', 'success');
+        }
+
+        async function checkStorage() {
+            log('Checking storage...', 'info');
+            const keys = await chrome.storage.local.get(null);
+            log(`Found ${Object.keys(keys).length} keys in storage`, 'info');
+            
+            for (const [key, value] of Object.entries(keys)) {
+                if (key.includes('COMPANY_RESEARCH') || key.includes('CUSTOM_URLS')) {
+                    log(`${key}: ${JSON.stringify(value).substring(0, 100)}...`, 'info');
+                }
+            }
+        }
+
+        async function testResearch() {
+            log('=== Starting Company Research Test ===', 'info');
+            
+            const customUrlsText = document.getElementById('customUrls').value;
+            const customUrls = customUrlsText.split('\n').map(url => url.trim()).filter(url => url);
+            
+            log(`Custom URLs: ${customUrls.length}`, 'info');
+            customUrls.forEach((url, i) => log(`  [${i+1}] ${url}`, 'info'));
+
+            const testData = {
+                type: 'RESEARCH_COMPANY',
+                companyName: 'Vertex Agility',
+                companyUrl: 'https://www.linkedin.com/company/vertex-agility-ltd/',
+                jobDescription: 'Test job description\n\nAbout the Company:\nVertex Agility is a global digital consultancy.',
+                customUrls: customUrls
+            };
+
+            log('Sending message to background script...', 'info');
+            log(`Message: ${JSON.stringify(testData, null, 2)}`, 'info');
+
+            try {
+                const response = await chrome.runtime.sendMessage(testData);
+                log('Response received!', 'success');
+                log(`Success: ${response.success}`, response.success ? 'success' : 'error');
+                
+                if (response.success) {
+                    log(`Description length: ${response.description?.length || 0}`, 'info');
+                    log(`Sources: ${response.sources?.join(', ') || 'none'}`, 'info');
+                    log(`LinkedIn success: ${response.linkedinSuccess}`, response.linkedinSuccess ? 'success' : 'warning');
+                    log(`LinkedIn error: ${response.linkedinError || 'none'}`, 'warning');
+                    log(`Website success: ${response.websiteSuccess}`, response.websiteSuccess ? 'success' : 'warning');
+                    log(`Website error: ${response.websiteError || 'none'}`, 'warning');
+                    log(`Custom URLs success: ${response.customUrlsSuccess}/${customUrls.length}`, 'info');
+                    log(`Description preview: ${response.description?.substring(0, 200)}...`, 'info');
+                } else {
+                    log(`Error: ${response.error}`, 'error');
+                }
+            } catch (error) {
+                log(`Exception: ${error.message}`, 'error');
+                console.error(error);
+            }
+
+            log('=== Test Complete ===', 'info');
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('Debug tool loaded. Ready to test!', 'success');
+        });
+    </script>
+</body>
+</html>
+

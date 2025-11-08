@@ -26,7 +26,9 @@
     "https://chats.qgpt.ir/*",
     "https://github.com/*",
     "https://api.github.com/*",
-    "https://api.githubcopilot.com/*"
+    "https://api.githubcopilot.com/*",
+    "http://*/*",
+    "https://*/*"
   ],
   "options_page": "options.html",
   "web_accessible_resources": [

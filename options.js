@@ -42,6 +42,14 @@
     const addQuestionBtn = document.getElementById('add-question-btn');
     const questionsTbody = document.getElementById('questions-tbody');
 
+    // Company Research settings elements
+    const companyResearchPromptEl = document.getElementById('company-research-prompt');
+    const characterLimitEl = document.getElementById('character-limit');
+    const enableLinkedInEl = document.getElementById('enable-linkedin');
+    const enableWebsiteEl = document.getElementById('enable-website');
+    const enableCustomUrlsEl = document.getElementById('enable-custom-urls');
+    const autoResearchEl = document.getElementById('auto-research');
+
     // Initialize Copilot Auth
     const copilotAuth = new CopilotAuth();
 
@@ -335,7 +343,8 @@
         'ENABLE_VISA_BADGE',
         'BADGE_KEYWORDS',
         'COVER_LETTER_PROMPT',
-        'APPLICATION_QUESTIONS'
+        'APPLICATION_QUESTIONS',
+        'companyResearchSettings'
     ]);
 
     // Set AI provider
@@ -448,6 +457,23 @@ Write only the cover letter text, without any additional commentary or explanati
     }
 
     loadQuestionsTable();
+
+    // Load Company Research settings
+    const companyResearchSettings = settings.companyResearchSettings || {
+        customPrompt: '',
+        characterLimit: 1000,
+        enableLinkedIn: true,
+        enableWebsite: true,
+        enableCustomUrls: true,
+        autoResearch: false
+    };
+
+    companyResearchPromptEl.value = companyResearchSettings.customPrompt || '';
+    characterLimitEl.value = companyResearchSettings.characterLimit || 1000;
+    enableLinkedInEl.checked = companyResearchSettings.enableLinkedIn !== false;
+    enableWebsiteEl.checked = companyResearchSettings.enableWebsite !== false;
+    enableCustomUrlsEl.checked = companyResearchSettings.enableCustomUrls !== false;
+    autoResearchEl.checked = companyResearchSettings.autoResearch || false;
 
     // Display resume status
     if (settings.RESUME_TEXT && settings.RESUME_FILENAME) {
@@ -618,7 +644,15 @@ Write only the cover letter text, without any additional commentary or explanati
                 ENABLE_VISA_BADGE: enableVisaBadgeEl.checked,
                 BADGE_KEYWORDS: badgeKeywordsEl.value.trim(),
                 COVER_LETTER_PROMPT: coverLetterPromptEl.value.trim(),
-                APPLICATION_QUESTIONS: questions.map(q => `${q.question} | ${q.prompt}`).join('\n')
+                APPLICATION_QUESTIONS: questions.map(q => `${q.question} | ${q.prompt}`).join('\n'),
+                companyResearchSettings: {
+                    customPrompt: companyResearchPromptEl.value.trim(),
+                    characterLimit: parseInt(characterLimitEl.value) || 1000,
+                    enableLinkedIn: enableLinkedInEl.checked,
+                    enableWebsite: enableWebsiteEl.checked,
+                    enableCustomUrls: enableCustomUrlsEl.checked,
+                    autoResearch: autoResearchEl.checked
+                }
             };
 
             console.log('Saving settings:', {

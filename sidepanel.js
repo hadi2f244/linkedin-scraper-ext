@@ -34,13 +34,23 @@
 
     // Company Research elements
     const researchCompanyBtn = $('#research-company-btn');
-    const refreshResearchBtn = $('#refresh-research-btn');
     const companyResearchStatus = $('#company-research-status-text');
     const companyResearchResult = $('#company-research-result');
     const companyResearchName = $('#company-research-name');
     const companyResearchContent = $('#company-research-content');
     const companyResearchTimestamp = $('#company-research-timestamp');
+    const companyResearchSources = $('#company-research-sources');
     const companyResearchError = $('#company-research-error');
+    const customUrlsInput = $('#custom-urls-input');
+    const clearCustomUrlsBtn = $('#clear-custom-urls-btn');
+    const companyResearchProgress = $('#company-research-progress');
+    const progressLinkedin = $('#progress-linkedin');
+    const progressWebsite = $('#progress-website');
+    const progressCustom = $('#progress-custom');
+    const manualContentInput = $('#manual-content-input');
+    const manualContentSection = $('#manual-content-section');
+    const toggleManualContentBtn = $('#toggle-manual-content');
+    const clearManualContentBtn = $('#clear-manual-content-btn');
 
     // Tab switching logic
     tabBtns.forEach(btn => {
@@ -254,6 +264,7 @@
     let currentJobText = '';
     let currentCompanyName = '';
     let currentJobTitle = '';
+    let currentCompanyUrl = ''; // LinkedIn company page URL
     let currentCompanyResearch = ''; // Stores the compiled company research data
     let abortController = null; // For canceling fetch requests
     let coverLetterAbortController = null; // For canceling cover letter requests
@@ -685,15 +696,17 @@
     // Display job data in the side panel
     const displayJobData = async (jobData) => {
         // Handle both old format (string) and new format (object)
-        let jobText, companyName, jobTitle;
+        let jobText, companyName, jobTitle, companyUrl;
         if (typeof jobData === 'string') {
             jobText = jobData;
             companyName = '';
             jobTitle = '';
+            companyUrl = '';
         } else if (jobData && typeof jobData === 'object') {
             jobText = jobData.text;
             companyName = jobData.companyName || '';
             jobTitle = jobData.jobTitle || '';
+            companyUrl = jobData.companyUrl || '';
         } else {
             setStatus('No job data available. Click on a job in LinkedIn.', true);
             rawTextPreview.textContent = '';
@@ -707,6 +720,7 @@
         currentJobText = normalizeText(jobText);
         currentCompanyName = companyName;
         currentJobTitle = jobTitle;
+        currentCompanyUrl = companyUrl;
 
         setStatus('Job data loaded ✓');
 
@@ -730,7 +744,8 @@
             console.log('Visa HTML generated, length:', visaHtml ? visaHtml.length : 0);
         } catch (error) {
             console.error('Error in checkVisaSponsorship:', error);
-            visaHtml = `<div class="visa-results"><p class="warning">Error checking visa: ${error.message}</p></div>`;
+            const errorMsg = error?.message || String(error);
+            visaHtml = `<div class="visa-results"><p class="warning">Error checking visa: ${errorMsg}</p></div>`;
         }
 
         // Display keyword search results
@@ -740,7 +755,8 @@
             console.log('Keyword HTML generated, length:', keywordHtml ? keywordHtml.length : 0);
         } catch (error) {
             console.error('Error in checkKeywords:', error);
-            keywordHtml = `<div class="keyword-results"><p class="warning">Error checking keywords: ${error.message}</p></div>`;
+            const errorMsg = error?.message || String(error);
+            keywordHtml = `<div class="keyword-results"><p class="warning">Error checking keywords: ${errorMsg}</p></div>`;
         }
 
         // Display bad keyword search results
@@ -750,7 +766,8 @@
             console.log('Bad keyword HTML generated, length:', badKeywordHtml ? badKeywordHtml.length : 0);
         } catch (error) {
             console.error('Error in checkBadKeywords:', error);
-            badKeywordHtml = `<div class="bad-keyword-results"><p class="warning">Error checking bad keywords: ${error.message}</p></div>`;
+            const errorMsg = error?.message || String(error);
+            badKeywordHtml = `<div class="bad-keyword-results"><p class="warning">Error checking bad keywords: ${errorMsg}</p></div>`;
         }
 
         const combinedHtml = visaHtml + keywordHtml + badKeywordHtml;
@@ -782,6 +799,16 @@
 
         // Enable company research button
         researchCompanyBtn.disabled = false;
+
+        // Load custom URLs for this company
+        const customUrlsKey = `CUSTOM_URLS_${companyName}`;
+        const { [customUrlsKey]: savedCustomUrls } = await chrome.storage.local.get([customUrlsKey]);
+        if (savedCustomUrls && savedCustomUrls.length > 0) {
+            customUrlsInput.value = savedCustomUrls.join('\n');
+            console.log('[Company Research] Loaded custom URLs:', savedCustomUrls.length);
+        } else {
+            customUrlsInput.value = '';
+        }
 
         // Check if we have cached company research for this company
         const cacheKey = `COMPANY_RESEARCH_${companyName}`;
@@ -928,7 +955,8 @@
             // Send message to content script to get current job data
             chrome.tabs.sendMessage(tab.id, { type: 'REQUEST_JOB_DATA' }, async (response) => {
                 if (chrome.runtime.lastError) {
-                    console.error('[Side Panel] Error sending message:', chrome.runtime.lastError.message);
+                    const errorMsg = chrome.runtime.lastError?.message || String(chrome.runtime.lastError);
+                    console.error('[Side Panel] Error sending message:', errorMsg);
 
                     // Try to get the last job data from chrome.storage as fallback
                     console.log('[Side Panel] Trying to get last job data from storage...');
@@ -953,7 +981,7 @@
                     }
 
                     // Check if it's a "Could not establish connection" error (content script not loaded)
-                    if (chrome.runtime.lastError.message.includes('Could not establish connection')) {
+                    if (errorMsg.includes('Could not establish connection')) {
                         setError('Content script not loaded. Please refresh the LinkedIn page.');
                     } else {
                         setError('Could not connect to LinkedIn page. Try refreshing the page.');
@@ -975,7 +1003,8 @@
 
         } catch (e) {
             console.error('[Side Panel] Error in requestJobDataFromTab:', e);
-            setError('Error fetching job data: ' + e.message);
+            const errorMsg = e?.message || String(e);
+            setError('Error fetching job data: ' + errorMsg);
         }
     };
 
@@ -1057,10 +1086,11 @@
                     });
                 } catch (copilotError) {
                     // Check if it's a subscription/access error
-                    if (copilotError.message.includes('not enabled') ||
-                        copilotError.message.includes('Access denied') ||
-                        copilotError.message.includes('403')) {
-                        aiStatusEl.innerHTML = `GitHub Copilot Error: ${copilotError.message}<br><br>` +
+                    const copilotErrorMsg = copilotError?.message || String(copilotError);
+                    if (copilotErrorMsg.includes('not enabled') ||
+                        copilotErrorMsg.includes('Access denied') ||
+                        copilotErrorMsg.includes('403')) {
+                        aiStatusEl.innerHTML = `GitHub Copilot Error: ${copilotErrorMsg}<br><br>` +
                             `<a href="options.html" target="_blank" style="color: #0073b1;">Open Options</a> to switch to OpenAI or Groq.`;
                         resetSendButton();
                         return;
@@ -1119,7 +1149,8 @@
             if (err.name === 'AbortError') {
                 aiStatusEl.textContent = 'Request cancelled.';
             } else {
-                aiStatusEl.textContent = `Error: ${err.message}`;
+                const errorMsg = err?.message || String(err);
+                aiStatusEl.textContent = `Error: ${errorMsg}`;
             }
             resetSendButton();
         }
@@ -1260,10 +1291,11 @@ Write only the cover letter text, without any additional commentary or explanati
                     });
                 } catch (copilotError) {
                     // Check if it's a subscription/access error
-                    if (copilotError.message.includes('not enabled') ||
-                        copilotError.message.includes('Access denied') ||
-                        copilotError.message.includes('403')) {
-                        coverLetterStatus.innerHTML = `GitHub Copilot Error: ${copilotError.message}<br><br>` +
+                    const copilotErrorMsg = copilotError?.message || String(copilotError);
+                    if (copilotErrorMsg.includes('not enabled') ||
+                        copilotErrorMsg.includes('Access denied') ||
+                        copilotErrorMsg.includes('403')) {
+                        coverLetterStatus.innerHTML = `GitHub Copilot Error: ${copilotErrorMsg}<br><br>` +
                             `<a href="options.html" target="_blank" style="color: #0073b1;">Open Options</a> to switch to OpenAI or Groq.`;
                         coverLetterStatus.style.color = '#c62828';
                         resetCoverLetterButton();
@@ -1327,7 +1359,8 @@ Write only the cover letter text, without any additional commentary or explanati
                 coverLetterStatus.textContent = 'Generation cancelled.';
                 coverLetterStatus.style.color = '#666';
             } else {
-                coverLetterStatus.textContent = 'Error: ' + err.message;
+                const errorMsg = err?.message || String(err);
+                coverLetterStatus.textContent = 'Error: ' + errorMsg;
                 coverLetterStatus.style.color = '#c62828';
             }
             resetCoverLetterButton();
@@ -1358,6 +1391,13 @@ Write only the cover letter text, without any additional commentary or explanati
             return;
         }
 
+        // Get custom URLs from input
+        const customUrlsText = customUrlsInput.value.trim();
+        const customUrls = customUrlsText ? customUrlsText.split('\n').map(url => url.trim()).filter(url => url) : [];
+
+        // Get manual content from input
+        const manualContent = manualContentInput.value.trim();
+
         // Check cache first (unless force refresh)
         if (!forceRefresh) {
             const cacheKey = `COMPANY_RESEARCH_${currentCompanyName}`;
@@ -1365,11 +1405,22 @@ Write only the cover letter text, without any additional commentary or explanati
 
             if (cachedData && cachedData.timestamp) {
                 const age = Date.now() - cachedData.timestamp;
-                // Use cache if less than 24 hours old
-                if (age < 24 * 60 * 60 * 1000) {
+
+                // Check if custom URLs or manual content have changed
+                const cachedUrls = cachedData.customUrls || [];
+                const cachedManualContent = cachedData.manualContent || '';
+                const urlsChanged = JSON.stringify(cachedUrls.sort()) !== JSON.stringify(customUrls.sort());
+                const manualContentChanged = cachedManualContent !== manualContent;
+
+                // Use cache if less than 24 hours old AND custom URLs AND manual content haven't changed
+                if (age < 24 * 60 * 60 * 1000 && !urlsChanged && !manualContentChanged) {
                     console.log('[Company Research] Using cached data (age:', Math.round(age / 1000 / 60), 'minutes)');
                     displayCompanyResearch(cachedData);
                     return;
+                } else if (urlsChanged) {
+                    console.log('[Company Research] Custom URLs changed, invalidating cache');
+                } else if (manualContentChanged) {
+                    console.log('[Company Research] Manual content changed, invalidating cache');
                 }
             }
         }
@@ -1381,38 +1432,72 @@ Write only the cover letter text, without any additional commentary or explanati
         companyResearchStatus.style.color = '#0073b1';
         companyResearchError.style.display = 'none';
         companyResearchResult.style.display = 'none';
+        companyResearchProgress.style.display = 'block';
+
+        // Reset progress indicators
+        progressLinkedin.innerHTML = '⏳ Fetching LinkedIn company page...';
+        progressWebsite.innerHTML = '⏳ Fetching company website...';
+        progressCustom.innerHTML = customUrls.length > 0 ? `⏳ Fetching ${customUrls.length} custom URL${customUrls.length > 1 ? 's' : ''}...` : '⏭️ No custom URLs';
 
         try {
             console.log('[Company Research] Starting research for:', currentCompanyName);
+            console.log('[Company Research] Company URL:', currentCompanyUrl);
+            console.log('[Company Research] Custom URLs:', customUrls);
+            console.log('[Company Research] Manual content length:', manualContent.length, 'chars');
 
             // Send message to background script to research company
             const response = await chrome.runtime.sendMessage({
                 type: 'RESEARCH_COMPANY',
                 companyName: currentCompanyName,
-                jobDescription: currentJobText
+                companyUrl: currentCompanyUrl,
+                jobDescription: currentJobText,
+                customUrls: customUrls,
+                manualContent: manualContent
             });
 
             if (response.success) {
                 console.log('[Company Research] Research completed successfully');
 
-                // Store in cache
-                const cacheKey = `COMPANY_RESEARCH_${currentCompanyName}`;
-                await chrome.storage.local.set({
-                    [cacheKey]: {
-                        companyName: currentCompanyName,
-                        description: response.description,
-                        sources: response.sources,
-                        timestamp: Date.now()
-                    }
-                });
+                // Update progress indicators based on results
+                if (response.linkedinSuccess) {
+                    progressLinkedin.innerHTML = '✅ LinkedIn company page fetched';
+                } else {
+                    progressLinkedin.innerHTML = '❌ LinkedIn company page failed: ' + (response.linkedinError || 'Unknown error');
+                }
 
-                // Display results
-                displayCompanyResearch({
+                if (response.websiteSuccess) {
+                    progressWebsite.innerHTML = '✅ Company website fetched';
+                } else if (response.websiteUrl) {
+                    progressWebsite.innerHTML = '❌ Company website failed: ' + (response.websiteError || 'Unknown error');
+                } else {
+                    progressWebsite.innerHTML = '⏭️ No website URL found';
+                }
+
+                if (customUrls.length > 0) {
+                    const successCount = response.customUrlsSuccess || 0;
+                    progressCustom.innerHTML = `✅ ${successCount}/${customUrls.length} custom URLs fetched`;
+                } else {
+                    progressCustom.innerHTML = '⏭️ No custom URLs';
+                }
+
+                // Store in cache (including custom URLs)
+                const cacheKey = `COMPANY_RESEARCH_${currentCompanyName}`;
+                const cacheData = {
                     companyName: currentCompanyName,
                     description: response.description,
                     sources: response.sources,
+                    customUrls: customUrls,
+                    manualContent: manualContent,
                     timestamp: Date.now()
-                });
+                };
+                await chrome.storage.local.set({ [cacheKey]: cacheData });
+
+                // Also save custom URLs for this company
+                const customUrlsKey = `CUSTOM_URLS_${currentCompanyName}`;
+                await chrome.storage.local.set({ [customUrlsKey]: customUrls });
+
+                // Display results
+                displayCompanyResearch(cacheData);
 
                 // Update global variable for use in Q&A
                 currentCompanyResearch = response.description;
@@ -1423,9 +1508,11 @@ Write only the cover letter text, without any additional commentary or explanati
 
         } catch (error) {
             console.error('[Company Research] Error:', error);
-            companyResearchError.textContent = `Error: ${error.message}`;
+            const errorMsg = error?.message || String(error);
+            companyResearchError.textContent = `Error: ${errorMsg}`;
             companyResearchError.style.display = 'block';
             companyResearchStatus.textContent = '';
+            companyResearchProgress.style.display = 'none';
         } finally {
             researchCompanyBtn.disabled = false;
             researchCompanyBtn.textContent = '🔍 Research Company';
@@ -1437,23 +1524,59 @@ Write only the cover letter text, without any additional commentary or explanati
         companyResearchName.textContent = data.companyName;
         companyResearchContent.textContent = data.description;
 
+        // Display sources
+        if (data.sources && data.sources.length > 0) {
+            companyResearchSources.textContent = `Sources: ${data.sources.join(', ')}`;
+        } else {
+            companyResearchSources.textContent = 'Sources: Job Description';
+        }
+
         const date = new Date(data.timestamp);
         companyResearchTimestamp.textContent = `Last updated: ${date.toLocaleString()}`;
 
         companyResearchResult.style.display = 'block';
         companyResearchStatus.textContent = '✓ Research completed';
         companyResearchStatus.style.color = '#2e7d32';
-        refreshResearchBtn.style.display = 'inline-block';
+        companyResearchProgress.style.display = 'none';
 
         // Update global variable
         currentCompanyResearch = data.description;
+
+        // Load custom URLs if they exist
+        if (data.customUrls && data.customUrls.length > 0) {
+            customUrlsInput.value = data.customUrls.join('\n');
+        }
     };
 
-    // Research company button handler
-    researchCompanyBtn.onclick = () => researchCompany(false);
+    // Research company button handler - always force refresh
+    researchCompanyBtn.onclick = () => researchCompany(true);
 
-    // Refresh research button handler
-    refreshResearchBtn.onclick = () => researchCompany(true);
+    // Clear custom URLs button handler
+    clearCustomUrlsBtn.onclick = async () => {
+        customUrlsInput.value = '';
+        // Also clear from storage
+        if (currentCompanyName) {
+            const customUrlsKey = `CUSTOM_URLS_${currentCompanyName}`;
+            await chrome.storage.local.remove(customUrlsKey);
+            console.log('[Company Research] Custom URLs cleared');
+        }
+    };
+
+    // Toggle manual content section
+    toggleManualContentBtn.onclick = () => {
+        if (manualContentSection.style.display === 'none') {
+            manualContentSection.style.display = 'block';
+            toggleManualContentBtn.textContent = 'Hide';
+        } else {
+            manualContentSection.style.display = 'none';
+            toggleManualContentBtn.textContent = 'Show';
+        }
+    };
+
+    // Clear manual content button handler
+    clearManualContentBtn.onclick = () => {
+        manualContentInput.value = '';
+    };
 
     // Custom question handler
     askCustomQuestionBtn.onclick = async () => {
@@ -1612,7 +1735,8 @@ Provide a clear, concise, and professional answer.`;
 
         } catch (err) {
             console.error('Custom question error:', err);
-            customAnswer.innerHTML = `<div style="color: #c62828;">Error: ${err.message}</div>`;
+            const errorMsg = err?.message || String(err);
+            customAnswer.innerHTML = `<div style="color: #c62828;">Error: ${errorMsg}</div>`;
         } finally {
             askCustomQuestionBtn.disabled = false;
             askCustomQuestionBtn.textContent = '🤔 Get Answer';
@@ -1666,7 +1790,8 @@ Provide a clear, concise, and professional answer.`;
                 console.log('[Side Panel] Retrying in 1 second...');
                 setTimeout(() => initializeWithRetry(retryCount + 1, maxRetries), 1000);
             } else {
-                setError('Failed to initialize: ' + e.message);
+                const errorMsg = e?.message || String(e);
+                setError('Failed to initialize: ' + errorMsg);
             }
         }
     };

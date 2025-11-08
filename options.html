@@ -127,6 +127,7 @@
     <button class="tab-btn active" data-tab="general">🔧 General</button>
     <button class="tab-btn" data-tab="cover-letter">📄 Cover Letter</button>
     <button class="tab-btn" data-tab="questions">❓ Application Questions</button>
+    <button class="tab-btn" data-tab="company-research">🏢 Company Research</button>
 </div>
 
 <!-- Tab: General -->
@@ -267,7 +268,8 @@
     • <code>{job_title}</code> - The job title<br>
     • <code>{company_name}</code> - The company name<br>
     • <code>{job_description}</code> - The full job description<br>
-    • <code>{resume}</code> - Your uploaded resume text<br><br>
+    • <code>{resume}</code> - Your uploaded resume text<br>
+    • <code>{company_research}</code> - Company research data (only available after running "Research Company" in the side panel)<br><br>
     <strong>Example:</strong><br>
     <code>Why do you want to work here? | Based on {job_description} and my resume, explain why I'm a great fit for {job_title} at {company_name}. Be specific and enthusiastic.</code>
 </p>
@@ -279,6 +281,72 @@
 
 </div>
 <!-- End Tab: Application Questions -->
+
+<!-- Tab: Company Research -->
+<div class="tab-content" id="tab-company-research">
+
+<h2>🏢 Company Research Settings</h2>
+
+<label>Custom AI Prompt for Company Research (Optional)</label>
+<textarea id="company-research-prompt" placeholder="Analyze the following company information and provide a comprehensive summary including: company mission, key products/services, company culture, recent news, and why someone would want to work there.
+
+Company: {company_name}
+Job Title: {job_title}
+
+Raw Research Data:
+{raw_research}"></textarea>
+<p class="muted">
+    <strong>✨ AI-Powered Company Research</strong><br><br>
+    When you provide a custom prompt, the raw company data will be processed through AI to generate a comprehensive summary.<br>
+    The AI-generated summary will be available as <code>{company_research}</code> variable in the Q&A tab.<br><br>
+    <strong>Leave empty</strong> to use raw concatenated data without AI processing.<br><br>
+    <strong>Note:</strong> Do NOT use <code>{company_research}</code> in this prompt (circular reference).<br>
+    <strong>Valid variables for this prompt:</strong><br>
+    • <code>{company_name}</code> - The company name<br>
+    • <code>{job_title}</code> - The job title<br>
+    • <code>{job_description}</code> - The full job description<br>
+    • <code>{raw_research}</code> - The raw scraped company data (before AI processing)
+</p>
+
+<label style="margin-top: 16px;">Character Limit Per Source</label>
+<input id="character-limit" type="number" min="500" max="5000" step="100" value="1000" style="width: 200px;" />
+<p class="muted">Maximum characters to extract from each source (LinkedIn, website, custom URLs). Default: 1000</p>
+
+<h3 style="margin-top: 24px;">Enable/Disable Sources</h3>
+
+<div style="margin: 12px 0;">
+    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="enable-linkedin" checked style="width: auto; margin-right: 8px;" />
+        <span>LinkedIn Company Page</span>
+    </label>
+</div>
+
+<div style="margin: 12px 0;">
+    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="enable-website" checked style="width: auto; margin-right: 8px;" />
+        <span>Company Website</span>
+    </label>
+</div>
+
+<div style="margin: 12px 0;">
+    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="enable-custom-urls" checked style="width: auto; margin-right: 8px;" />
+        <span>Custom URLs</span>
+    </label>
+</div>
+
+<h3 style="margin-top: 24px;">Auto-Research</h3>
+
+<div style="margin: 12px 0;">
+    <label style="display: inline-flex; align-items: center; cursor: pointer;">
+        <input type="checkbox" id="auto-research" style="width: auto; margin-right: 8px;" />
+        <span>Automatically research company when a new job loads</span>
+    </label>
+    <p class="muted" style="margin-left: 28px;">When enabled, company research will run automatically when you view a new job. This may consume API quota if using AI processing.</p>
+</div>
+
+</div>
+<!-- End Tab: Company Research -->
 
 </div>
 <!-- End Container -->

@@ -303,6 +303,18 @@ const extractJobDetails = async () => {
     const jobTitle = jobTitleEl ? jobTitleEl.textContent.trim() : '';
     console.log('[LinkedIn Scraper] Job title:', jobTitle);
 
+    // Extract company LinkedIn URL
+    let companyUrl = '';
+    const companyLinkEl = document.querySelector('.job-details-jobs-unified-top-card__company-name a') ||
+                          document.querySelector('.jobs-unified-top-card__company-name a') ||
+                          document.querySelector('.jobs-details-top-card__company-url');
+    if (companyLinkEl && companyLinkEl.href) {
+      companyUrl = companyLinkEl.href;
+      console.log('[LinkedIn Scraper] Company URL:', companyUrl);
+    } else {
+      console.log('[LinkedIn Scraper] No company URL found');
+    }
+
     // Trigger badge analysis for this job
     console.log('[Badge Scanner] Checking if should analyze job...');
     console.log('[Badge Scanner] - jobId:', jobId);
@@ -322,7 +334,8 @@ const extractJobDetails = async () => {
     return {
       text: cleaned,
       companyName: companyName,
-      jobTitle: jobTitle
+      jobTitle: jobTitle,
+      companyUrl: companyUrl
     };
   }
 
@@ -341,6 +354,7 @@ const sendJobDataToSidePanel = (jobData) => {
   console.log('[LinkedIn Scraper] Sending job data to side panel:', {
     companyName: jobData.companyName,
     jobTitle: jobData.jobTitle,
+    companyUrl: jobData.companyUrl,
     url: window.location.href
   });
 
@@ -350,6 +364,7 @@ const sendJobDataToSidePanel = (jobData) => {
       text: jobData.text,
       companyName: jobData.companyName,
       jobTitle: jobData.jobTitle,
+      companyUrl: jobData.companyUrl,
       url: window.location.href,
       timestamp: Date.now()
     }
@@ -492,7 +507,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     extractJobDetails().then(jobData => {
       console.log('[LinkedIn Scraper] Extracted job data for REQUEST_JOB_DATA:', jobData ? {
         companyName: jobData.companyName,
-        jobTitle: jobData.jobTitle
+        jobTitle: jobData.jobTitle,
+        companyUrl: jobData.companyUrl
       } : null);
 
       sendResponse({
@@ -501,6 +517,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           text: jobData.text,
           companyName: jobData.companyName,
           jobTitle: jobData.jobTitle,
+          companyUrl: jobData.companyUrl,
           url: window.location.href,
           timestamp: Date.now()
         } : null

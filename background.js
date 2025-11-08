@@ -1273,12 +1273,38 @@ async function researchCompany(companyName, companyUrl, jobDescription, customUr
         console.log('[Background] Custom prompt found, using AI to summarize...');
 
         try {
+          // Collect all company links for the AI
+          const companyLinks = [];
+
+          // Add LinkedIn URL if available
+          if (companyUrl) {
+            companyLinks.push(companyUrl);
+          }
+
+          // Add website URL if found
+          if (websiteUrl) {
+            companyLinks.push(websiteUrl);
+          }
+
+          // Add custom URLs
+          if (customUrls && customUrls.length > 0) {
+            companyLinks.push(...customUrls);
+          }
+
+          // Format links as a bulleted list
+          const companyLinksText = companyLinks.length > 0
+            ? companyLinks.map(link => `- ${link}`).join('\n')
+            : 'No links available';
+
+          console.log('[Background] Company links for AI:', companyLinks.length, 'links');
+
           // Replace variables in the custom prompt
           let aiPrompt = customPrompt
             .replace(/{company_name}/g, companyName)
             .replace(/{job_title}/g, 'N/A') // We don't have job title in background.js
             .replace(/{job_description}/g, jobDescription || 'N/A')
-            .replace(/{raw_research}/g, rawResearch);
+            .replace(/{raw_research}/g, rawResearch)
+            .replace(/{company_links}/g, companyLinksText);
 
           console.log('[Background] AI prompt length:', aiPrompt.length, 'chars');
 
